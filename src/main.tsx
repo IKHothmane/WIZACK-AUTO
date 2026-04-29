@@ -16,6 +16,21 @@ const initTheme = () => {
 
 initTheme();
 
+const initGoogleSearchConsole = () => {
+  const token = String((import.meta as any).env?.VITE_GSC_VERIFICATION ?? "").trim();
+  if (!token) return;
+  const head = document.head;
+  if (!head) return;
+  const name = "google-site-verification";
+  const existing = head.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+  const meta = existing ?? document.createElement("meta");
+  meta.setAttribute("name", name);
+  meta.setAttribute("content", token);
+  if (!existing) head.appendChild(meta);
+};
+
+initGoogleSearchConsole();
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
