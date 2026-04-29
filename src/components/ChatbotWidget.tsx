@@ -16,9 +16,129 @@ type DifyStreamEvent =
   | { event: "message_end"; conversation_id?: string; message_id?: string }
   | { event: string; [k: string]: unknown };
 
-const storageUserKey = "wizack-dify-user";
-const storageConversationKey = "wizack-dify-conversation";
-const storageMessagesKey = "wizack-dify-messages";
+const storageUserKey = "wizack-dify-user-chat";
+const storageConversationKey = "wizack-dify-conversation-chat";
+const storageMessagesKey = "wizack-dify-messages-chat";
+
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const automotiveKeywords = [
+  "voiture",
+  "auto",
+  "moteur",
+  "diesel",
+  "essence",
+  "hybride",
+  "frein",
+  "freinage",
+  "plaquette",
+  "disque",
+  "etrier",
+  "abs",
+  "obd",
+  "obd2",
+  "ecu",
+  "capteur",
+  "injecteur",
+  "turbo",
+  "alternateur",
+  "batterie",
+  "embrayage",
+  "boite",
+  "boîte",
+  "pneu",
+  "suspension",
+  "direction",
+  "vidange",
+  "huile",
+  "filtre",
+  "radiateur",
+  "clim",
+  "climatisation",
+  "fap",
+  "catalyseur",
+  "courroie",
+  "distribution",
+  "bougie",
+  "diagnostic",
+  "panne",
+  "bruit",
+  "fumee",
+  "fumée",
+  "voyant",
+  "demarrage",
+  "démarrage",
+  "marque",
+  "modele",
+  "modèle",
+  "annee",
+  "année",
+  "bmw",
+  "audi",
+  "mercedes",
+  "renault",
+  "peugeot",
+  "toyota",
+  "volkswagen",
+  "honda",
+].map(normalizeText);
+
+const isLikelyAutomotive = (value: string) => {
+  const normalized = normalizeText(value);
+  if (!normalized) return false;
+  if (automotiveKeywords.some((k) => normalized.includes(k))) return true;
+
+  const tokens = normalized.split(/\s+/).filter((t) => t.length >= 4);
+  if (!tokens.length) return false;
+
+  const editDistanceWithin = (a: string, b: string, maxDist: number) => {
+    if (a === b) return true;
+    const lenA = a.length;
+    const lenB = b.length;
+    if (Math.abs(lenA - lenB) > maxDist) return false;
+    if (lenA === 0 || lenB === 0) return Math.max(lenA, lenB) <= maxDist;
+
+    let prev = new Array(lenB + 1);
+    let curr = new Array(lenB + 1);
+    for (let j = 0; j <= lenB; j++) prev[j] = j;
+
+    for (let i = 1; i <= lenA; i++) {
+      curr[0] = i;
+      let rowMin = curr[0];
+      const ca = a.charCodeAt(i - 1);
+      for (let j = 1; j <= lenB; j++) {
+        const cost = ca === b.charCodeAt(j - 1) ? 0 : 1;
+        const del = prev[j] + 1;
+        const ins = curr[j - 1] + 1;
+        const sub = prev[j - 1] + cost;
+        const v = Math.min(del, ins, sub);
+        curr[j] = v;
+        if (v < rowMin) rowMin = v;
+      }
+      if (rowMin > maxDist) return false;
+      const tmp = prev;
+      prev = curr;
+      curr = tmp;
+    }
+    return prev[lenB] <= maxDist;
+  };
+
+  for (const token of tokens) {
+    const maxDist = token.length >= 9 ? 2 : token.length >= 6 ? 2 : 1;
+    for (const keyword of automotiveKeywords) {
+      if (keyword.length < 4) continue;
+      if (editDistanceWithin(token, keyword, maxDist)) return true;
+    }
+  }
+
+  return false;
+};
 
 const ensureUserId = () => {
   const existing = window.localStorage.getItem(storageUserKey);
@@ -134,64 +254,7 @@ export function ChatbotWidget() {
     const content = input.trim();
     if (!content || isSending) return;
 
-    const normalized = content.toLowerCase();
-    const automotiveKeywords = [
-      "voiture",
-      "auto",
-      "moteur",
-      "diesel",
-      "essence",
-      "hybride",
-      "frein",
-      "abs",
-      "obd",
-      "obd2",
-      "ecu",
-      "capteur",
-      "injecteur",
-      "turbo",
-      "alternateur",
-      "batterie",
-      "embrayage",
-      "boite",
-      "boîte",
-      "pneu",
-      "suspension",
-      "direction",
-      "vidange",
-      "huile",
-      "filtre",
-      "radiateur",
-      "clim",
-      "climatisation",
-      "fap",
-      "catalyseur",
-      "courroie",
-      "distribution",
-      "bougie",
-      "diagnostic",
-      "panne",
-      "bruit",
-      "fumee",
-      "fumée",
-      "voyant",
-      "demarrage",
-      "démarrage",
-      "marque",
-      "modele",
-      "modèle",
-      "annee",
-      "année",
-      "bmw",
-      "audi",
-      "mercedes",
-      "renault",
-      "peugeot",
-      "toyota",
-      "volkswagen",
-      "honda",
-    ];
-    const isAutomotive = automotiveKeywords.some((k) => normalized.includes(k));
+    const isAutomotive = isLikelyAutomotive(content);
 
     const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: "user", content };
     const assistantId = `a-${Date.now()}`;
@@ -209,12 +272,17 @@ export function ChatbotWidget() {
         return;
       }
 
-      const query = `Question 100% mécanique automobile (garage professionnel). Réponds en français, clair et technique.\n\nQuestion: ${content}`;
+      const query =
+        `Tu es WIZACK AI (garage professionnel). Réponds uniquement à la question posée.\n` +
+        `Interdit: générer une fiche technique complète (pas de sections type "FICHE TECHNIQUE", "IDENTIFICATION VEHICULE", "HUILES", "PIECES D'ENTRETIEN").\n` +
+        `Donne une réponse courte et utile: causes probables, contrôles à faire, actions recommandées.\n` +
+        `Si une info manque (marque/modèle/année/motorisation/km/codes défaut), pose 1-3 questions ciblées.\n\n` +
+        `Question: ${content}`;
       const res = await fetch("/api/dify/chat-messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          inputs: {},
+          inputs: { mode: "chat_garage" },
           query,
           response_mode: "streaming",
           user,
@@ -300,7 +368,7 @@ export function ChatbotWidget() {
       </button>
 
       <div
-        className={`fixed bottom-0 right-0 w-full h-[70vh] sm:bottom-6 sm:right-6 sm:w-96 sm:h-auto rounded-t-3xl sm:rounded-2xl flex flex-col overflow-hidden transition-all duration-300 z-50 origin-bottom-right ${
+        className={`fixed bottom-0 right-0 w-full h-[70svh] max-h-[100svh] pb-[env(safe-area-inset-bottom)] sm:bottom-6 sm:right-6 sm:w-96 sm:h-[70vh] sm:max-h-[calc(100vh-48px)] rounded-t-3xl sm:rounded-2xl flex flex-col overflow-hidden transition-all duration-300 z-50 origin-bottom-right ${
           isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-0 opacity-0 pointer-events-none translate-y-10"
         }`}
         style={{
@@ -342,7 +410,7 @@ export function ChatbotWidget() {
           </button>
         </div>
 
-        <div ref={scrollRef} className="flex-1 p-4 h-72 overflow-y-auto flex flex-col gap-3" style={{ background: "var(--bg)" }}>
+        <div ref={scrollRef} className="flex-1 min-h-0 p-4 overflow-y-auto flex flex-col gap-3" style={{ background: "var(--bg)" }}>
           {messages.map((m) => {
             const isAssistant = m.role === "assistant";
             return (

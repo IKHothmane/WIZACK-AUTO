@@ -86,7 +86,7 @@ export function VehicleSelector() {
   };
 
   const ensureUserId = () => {
-    const key = "wizack-dify-user";
+    const key = "wizack-dify-user-tech";
     const existing = window.localStorage.getItem(key);
     if (existing) return existing;
     const id = `u-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
