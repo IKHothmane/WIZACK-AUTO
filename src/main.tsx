@@ -9,7 +9,7 @@ const storageKey = "wizack-theme";
 const initTheme = () => {
   const root = document.documentElement;
   const saved = window.localStorage.getItem(storageKey);
-  const theme = saved === "dark" || saved === "light" ? saved : "light";
+  const theme = saved === "dark" || saved === "light" ? saved : "dark";
   root.classList.remove("light", "dark");
   root.classList.add(theme);
 };
