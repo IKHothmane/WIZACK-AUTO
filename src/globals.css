@@ -1,0 +1,401 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: #0A0A0A;
+  --color-background-light: #FAFAF8;
+  --color-surface: #111111;
+  --color-surface-light: #FFFFFF;
+  --color-card: #1A1A1A;
+  --color-card-light: #FFFFFF;
+
+  --color-primary: #C9A84C;
+  --color-primary-light: #B8860B;
+  --color-primary-glow: rgba(201, 168, 76, 0.35);
+
+  --color-gold-light: #E8D5A3;
+  --color-gold-dark: #8B6914;
+
+  --color-text-primary: #F5F0E8;
+  --color-text-primary-light: #1A1208;
+  --color-text-secondary: #9A8A6A;
+  --color-text-secondary-light: #6E5B42;
+
+  --color-border: rgba(201, 168, 76, 0.15);
+  --color-border-light: rgba(201, 168, 76, 0.18);
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', 'Inter', sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  --color-background: var(--color-background-light);
+  --color-surface: var(--color-surface-light);
+  --color-card: var(--color-card-light);
+  --color-text-primary: var(--color-text-primary-light);
+  --color-text-secondary: var(--color-text-secondary-light);
+  --color-border: var(--color-border-light);
+
+  --bg: var(--color-background-light);
+  --surface: var(--color-surface-light);
+  --card: var(--color-card-light);
+  --text: var(--color-text-primary-light);
+  --text-muted: var(--color-text-secondary-light);
+  --border: var(--color-border-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-background: #0A0A0A;
+    --color-surface: #111111;
+    --color-card: #1A1A1A;
+    --color-text-primary: #F5F0E8;
+    --color-text-secondary: #9A8A6A;
+    --color-border: rgba(201, 168, 76, 0.15);
+
+    --bg: var(--color-background);
+    --surface: var(--color-surface);
+    --card: var(--color-card);
+    --text: var(--color-text-primary);
+    --text-muted: var(--color-text-secondary);
+    --border: var(--color-border);
+  }
+}
+
+html.dark {
+  color-scheme: dark;
+  --color-background: #0A0A0A;
+  --color-surface: #111111;
+  --color-card: #1A1A1A;
+  --color-text-primary: #F5F0E8;
+  --color-text-secondary: #9A8A6A;
+  --color-border: rgba(201, 168, 76, 0.15);
+
+  --bg: var(--color-background);
+  --surface: var(--color-surface);
+  --card: var(--color-card);
+  --text: var(--color-text-primary);
+  --text-muted: var(--color-text-secondary);
+  --border: var(--color-border);
+}
+
+html.light {
+  color-scheme: light;
+  --color-background: var(--color-background-light);
+  --color-surface: var(--color-surface-light);
+  --color-card: var(--color-card-light);
+  --color-text-primary: var(--color-text-primary-light);
+  --color-text-secondary: var(--color-text-secondary-light);
+  --color-border: var(--color-border-light);
+
+  --bg: var(--color-background-light);
+  --surface: var(--color-surface-light);
+  --card: var(--color-card-light);
+  --text: var(--color-text-primary-light);
+  --text-muted: var(--color-text-secondary-light);
+  --border: var(--color-border-light);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
+}
+
+body {
+  background-color: var(--bg, var(--color-background-light));
+  color: var(--text, var(--color-text-primary));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 3px;
+}
+
+::selection {
+  background: rgba(201, 168, 76, 0.3);
+  color: var(--color-gold-light);
+}
+
+/* ─── Animations ─── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(201, 168, 76, 0); }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(201, 168, 76, 0.15); }
+  50% { border-color: rgba(201, 168, 76, 0.35); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border: 1px solid rgba(201, 168, 76, 0.12);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border: 1px solid rgba(201, 168, 76, 0.12);
+  }
+
+  html.dark .glass {
+    background: rgba(17, 17, 17, 0.75);
+    border: 1px solid rgba(201, 168, 76, 0.10);
+  }
+
+  .hover-glow {
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+  }
+  .hover-glow:hover {
+    box-shadow: 0 0 20px rgba(201, 168, 76, 0.45), 0 0 40px rgba(201, 168, 76, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #E8D5A3 0%, #C9A84C 40%, #8B6914 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gold-border {
+    border: 1px solid var(--color-primary);
+    box-shadow: 0 0 8px rgba(201, 168, 76, 0.2);
+  }
+
+  .btn-gold {
+    background: linear-gradient(135deg, #C9A84C 0%, #B8860B 100%);
+    color: #0A0A0A;
+    font-weight: 700;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(201, 168, 76, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-gold::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+  }
+  .btn-gold:hover {
+    background: linear-gradient(135deg, #E8D5A3 0%, #C9A84C 100%);
+    box-shadow: 0 8px 30px rgba(201, 168, 76, 0.5);
+    transform: translateY(-2px);
+  }
+  .btn-gold:hover::before {
+    left: 100%;
+  }
+  .btn-gold:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease both;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-pulse-gold {
+    animation: pulse-gold 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-shimmer {
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 3s ease infinite;
+  }
+
+  .card-premium {
+    background: var(--card);
+    border: 1px solid rgba(201, 168, 76, 0.10);
+    border-radius: 20px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  .card-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.3), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .card-premium:hover {
+    border-color: rgba(201, 168, 76, 0.25);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(201, 168, 76, 0.08);
+    transform: translateY(-3px);
+  }
+  .card-premium:hover::before {
+    opacity: 1;
+  }
+
+  .section-glow {
+    position: relative;
+  }
+  .section-glow::before {
+    content: '';
+    position: absolute;
+    top: -120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201, 168, 76, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .input-premium {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--color-text-primary);
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    outline: none;
+    width: 100%;
+  }
+  .input-premium:focus {
+    border-color: rgba(201, 168, 76, 0.45);
+    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  .input-premium::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.7;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ─── Mobile Refinements ─── */
+@media (max-width: 640px) {
+  h1 {
+    font-size: 1.6rem !important; /* text-3xl reduced */
+    line-height: 2rem !important;
+  }
+  
+  .container {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  
+  .section-glow::before {
+    width: 200px;
+    height: 200px;
+    top: -40px;
+  }
+  
+  .card-premium {
+    padding: 1rem !important;
+    border-radius: 12px;
+  }
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading tracking-tight;
+  }
+}
