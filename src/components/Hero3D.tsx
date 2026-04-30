@@ -1,7 +1,34 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export function Hero3D() {
+  const [enableVideo, setEnableVideo] = useState(false);
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+    const isSmallScreen = window.matchMedia?.("(max-width: 768px)")?.matches ?? false;
+    const connection = (navigator as any).connection as
+      | { effectiveType?: string; saveData?: boolean; downlink?: number }
+      | undefined;
+    const isSlowConnection =
+      Boolean(connection?.saveData) ||
+      (typeof connection?.effectiveType === "string" && /(^|-)2g$|3g/.test(connection.effectiveType)) ||
+      (typeof connection?.downlink === "number" && connection.downlink < 1.5);
+
+    if (prefersReducedMotion || isSmallScreen || isSlowConnection) return;
+
+    const start = () => setEnableVideo(true);
+    const w = window as any;
+    if (typeof w.requestIdleCallback === "function") {
+      const id = w.requestIdleCallback(start, { timeout: 2500 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+
+    const t = window.setTimeout(start, 1200);
+    return () => window.clearTimeout(t);
+  }, []);
+
   return (
     <div
       className="w-full min-h-[85vh] relative overflow-hidden"
@@ -9,24 +36,47 @@ export function Hero3D() {
     >
       {/* Video background */}
       <div className="absolute inset-0 z-0">
-        <video
-          className="absolute inset-0 w-full h-full object-cover block dark:hidden"
-          src="/animateL.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-        />
-        <video
-          className="absolute inset-0 w-full h-full object-cover hidden dark:block"
-          src="/animate.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-        />
+        {enableVideo ? (
+          <>
+            <video
+              className="absolute inset-0 w-full h-full object-cover block dark:hidden"
+              src="/animateL.mp4"
+              poster="/ultra.jpeg"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="none"
+              aria-hidden="true"
+              tabIndex={-1}
+            >
+              <track kind="captions" src="/captions.vtt" srcLang="fr" label="Français" default />
+            </video>
+            <video
+              className="absolute inset-0 w-full h-full object-cover hidden dark:block"
+              src="/animate.mp4"
+              poster="/ultra.jpeg"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="none"
+              aria-hidden="true"
+              tabIndex={-1}
+            >
+              <track kind="captions" src="/captions.vtt" srcLang="fr" label="Français" default />
+            </video>
+          </>
+        ) : (
+          <img
+            src="/ultra.jpeg"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            decoding="async"
+            fetchPriority="high"
+            aria-hidden="true"
+          />
+        )}
         {/* Enhanced overlay gradient */}
         <div className="absolute inset-0" style={{
           background: "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.55) 100%)"

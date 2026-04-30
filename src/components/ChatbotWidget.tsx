@@ -453,6 +453,7 @@ export function ChatbotWidget() {
         <div className="p-3 flex gap-2" style={{ borderTop: "1px solid rgba(201,168,76,0.12)" }}>
           <input
             type="text"
+            aria-label="Message pour WIZACK AI"
             placeholder="Décrivez votre besoin..."
             value={input}
             onChange={(e) => setInput(e.target.value)}

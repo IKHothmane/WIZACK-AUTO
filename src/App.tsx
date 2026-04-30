@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { Hero3D } from "./components/Hero3D";
 import { VehicleSelector } from "./components/VehicleSelector";
 import { AtelierServices } from "./components/AtelierServices";
-import { ChatbotWidget } from "./components/ChatbotWidget";
 import { ShieldCheck, Truck, Headphones, Award, Star, ChevronRight, Package, TrendingUp, Users, User, Settings, ShoppingBag, FileText, Lock, History, Activity, BarChart3, CreditCard, BadgeCheck, Rocket, Wrench, Medal, Search, Plus, LayoutGrid, List, Download, Upload } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import { useCartStore, useAdminStore, type AtelierService, type BrandConfig } from "./store";
 
 type Product = {
@@ -23,6 +21,21 @@ type Product = {
 };
 
 const productsStorageKey = "wizack-products";
+
+const ChatbotWidgetLazy = lazy(async () => {
+  const mod = await import("./components/ChatbotWidget");
+  return { default: mod.ChatbotWidget };
+});
+
+const AdminAnalyticsChartsLazy = lazy(async () => {
+  const mod = await import("./components/AdminAnalyticsCharts");
+  return { default: mod.AdminAnalyticsCharts };
+});
+
+const AdminSalesChartLazy = lazy(async () => {
+  const mod = await import("./components/AdminSalesChart");
+  return { default: mod.AdminSalesChart };
+});
 
 const defaultProducts: Product[] = [
   {
@@ -114,8 +127,30 @@ function PageShell({ children }: { children: ReactNode }) {
       <Navbar />
       <div className="pt-20 flex-1">{children}</div>
       <Footer />
-      <ChatbotWidget />
+      <LazyChatbot />
     </div>
+  );
+}
+
+function LazyChatbot() {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    const start = () => setEnabled(true);
+    const w = window as any;
+    if (typeof w.requestIdleCallback === "function") {
+      const id = w.requestIdleCallback(start, { timeout: 2500 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const t = window.setTimeout(start, 1500);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  if (!enabled) return null;
+  return (
+    <Suspense fallback={null}>
+      <ChatbotWidgetLazy />
+    </Suspense>
   );
 }
 
@@ -161,7 +196,12 @@ function HomePage({ products }: { products: Product[] }) {
                 <div className="h-px w-full my-3" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }} />
                 <div className="flex items-end justify-between gap-2 mt-auto">
                   <span className="text-lg font-black" style={{ color: "var(--color-primary)" }}>{formatPrice(p.price_cents, p.currency)}</span>
-                  <Link to={`/produit/${p.slug}`} className="w-8 h-8 rounded-full flex items-center justify-center transition-colors group-hover:bg-[#C9A84C] group-hover:text-black" style={{ background: "rgba(255,255,255,0.05)", color: "var(--color-text-primary)" }}>
+                  <Link
+                    to={`/produit/${p.slug}`}
+                    aria-label={`Voir ${p.name}`}
+                    className="w-8 h-8 rounded-full flex items-center justify-center transition-colors group-hover:bg-[#C9A84C] group-hover:text-black"
+                    style={{ background: "rgba(255,255,255,0.05)", color: "var(--color-text-primary)" }}
+                  >
                     <ChevronRight size={14} />
                   </Link>
                 </div>
@@ -526,7 +566,15 @@ function MarquesPage({ products }: { products: Product[] }) {
                 >
                   <div className="w-12 h-12 sm:w-16 sm:h-16 mb-3 sm:mb-4 flex items-center justify-center bg-white rounded-full p-2" style={{ boxShadow: "0 4px 15px rgba(0,0,0,0.1)" }}>
                     {logo ? (
-                      <img src={logo} alt={b} className="w-full h-full object-contain filter group-hover:scale-110 transition-transform" />
+                      <img
+                        src={logo}
+                        alt={b}
+                        loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-contain filter group-hover:scale-110 transition-transform"
+                      />
                     ) : (
                       <ShieldCheck size={24} className="sm:size-[32px]" style={{ color: "#C9A84C" }} />
                     )}
@@ -605,6 +653,7 @@ function SearchPage({ products }: { products: Product[] }) {
               <input
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
+                aria-label="Rechercher une pièce"
                 placeholder="Rechercher une pièce (nom, marque, catégorie)..."
                 className="input-premium flex-1"
               />
@@ -699,8 +748,8 @@ function LoginPage() {
             <p className="mt-2 text-sm text-center" style={{ color: "var(--color-text-secondary)" }}>Accédez à votre espace personnel.</p>
 
             <form className="mt-8 grid gap-4" onSubmit={submit}>
-              <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email ou identifiant" className="input-premium" />
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" type="password" className="input-premium" />
+              <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} aria-label="Email ou identifiant" placeholder="Email ou identifiant" className="input-premium" />
+              <input value={password} onChange={(e) => setPassword(e.target.value)} aria-label="Mot de passe" placeholder="Mot de passe" type="password" className="input-premium" />
               {error && <div className="text-sm font-semibold rounded-xl px-4 py-2.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.15)", color: "rgb(239,68,68)" }}>{error}</div>}
               <button type="submit" className="rounded-xl px-4 py-3.5 text-sm font-bold transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #C9A84C 0%, #B8860B 100%)", color: "#0A0A0A", boxShadow: "0 6px 24px rgba(201,168,76,0.35)" }}>Se connecter</button>
             </form>
@@ -775,7 +824,14 @@ function CartPage() {
                         <p className="text-xs font-bold mt-1" style={{ color: "var(--color-primary)" }}>{formatPrice(item.price_cents, item.currency)}</p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <input type="number" min="1" value={item.quantity} onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)} className="w-16 input-premium text-center !p-2" />
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                          aria-label={`Quantité pour ${item.name}`}
+                          className="w-16 input-premium text-center !p-2"
+                        />
                         <button onClick={() => removeItem(item.id)} className="text-xs font-bold text-red-500 hover:text-red-400 transition-colors px-2">Retirer</button>
                       </div>
                     </div>
@@ -838,12 +894,12 @@ function CheckoutPage() {
                     <>
                       <h3 className="text-sm font-bold mb-4" style={{ color: "var(--color-text-primary)" }}>1. Informations de livraison</h3>
                       <div className="grid grid-cols-2 gap-4">
-                        <input required placeholder="Prénom" className="input-premium" />
-                        <input required placeholder="Nom" className="input-premium" />
+                        <input required aria-label="Prénom" placeholder="Prénom" className="input-premium" />
+                        <input required aria-label="Nom" placeholder="Nom" className="input-premium" />
                       </div>
-                      <input required placeholder="Adresse complète" className="input-premium" />
-                      <input required placeholder="Ville" className="input-premium" />
-                      <input required placeholder="Téléphone" type="tel" className="input-premium" />
+                      <input required aria-label="Adresse complète" placeholder="Adresse complète" className="input-premium" />
+                      <input required aria-label="Ville" placeholder="Ville" className="input-premium" />
+                      <input required aria-label="Téléphone" placeholder="Téléphone" type="tel" className="input-premium" />
                     </>
                   ) : (
                     <>
@@ -932,8 +988,8 @@ function RegisterPage() {
             <h1 className="text-2xl font-heading font-black text-center" style={{ color: "var(--color-text-primary)" }}>Inscription</h1>
             <p className="mt-2 text-sm text-center" style={{ color: "var(--color-text-secondary)" }}>Créez votre compte Wizack Auto.</p>
             <form className="mt-8 grid gap-4" onSubmit={submit}>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="input-premium" />
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mot de passe" type="password" className="input-premium" />
+              <input value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email" placeholder="Email" className="input-premium" />
+              <input value={password} onChange={(e) => setPassword(e.target.value)} aria-label="Mot de passe" placeholder="Mot de passe" type="password" className="input-premium" />
               {error && <div className="text-sm font-semibold rounded-xl px-4 py-2.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.15)", color: "rgb(239,68,68)" }}>{error}</div>}
               <button type="submit" className="rounded-xl px-4 py-3.5 text-sm font-bold transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #C9A84C 0%, #B8860B 100%)", color: "#0A0A0A", boxShadow: "0 6px 24px rgba(201,168,76,0.35)" }}>Créer un compte</button>
             </form>
@@ -1166,20 +1222,9 @@ function AdminDashboardPage({ products }: { products: Product[] }) {
             </div>
             <Activity size={20} style={{ color: "#C9A84C" }} />
           </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={salesData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--color-text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--color-text-secondary)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                <Tooltip 
-                  contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "12px", color: "var(--color-text-primary)" }}
-                  itemStyle={{ color: "#C9A84C", fontWeight: "bold" }}
-                />
-                <Line type="monotone" dataKey="ventes" stroke="#C9A84C" strokeWidth={3} dot={{ r: 4, fill: "#C9A84C", strokeWidth: 0 }} activeDot={{ r: 6, strokeWidth: 0 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <Suspense fallback={<div className="h-[300px] w-full" />}>
+            <AdminSalesChartLazy salesData={salesData} />
+          </Suspense>
         </div>
 
         <div className="card-premium p-6 flex flex-col">
@@ -1711,8 +1756,6 @@ function AdminAnalyticsPage() {
     { name: "Suspension", val: 20 },
     { name: "Électricité", val: 10 },
   ];
-  
-  const COLORS = ['#C9A84C', '#B8860B', '#8B6508', '#5E4A15'];
 
   return (
     <AdminShell title="Analytique & KPIs">
@@ -1733,46 +1776,16 @@ function AdminAnalyticsPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="card-premium p-6 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-          <p className="text-sm font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>Évolution des Ventes (7 derniers jours)</p>
-          <div className="h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={salesData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--color-text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--color-text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "12px", color: "#C9A84C" }} />
-                <Line type="monotone" dataKey="val" stroke="#C9A84C" strokeWidth={3} dot={{ fill: '#C9A84C', r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
+      <Suspense
+        fallback={
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="card-premium p-6" style={{ minHeight: "320px" }} />
+            <div className="card-premium p-6" style={{ minHeight: "320px" }} />
           </div>
-        </div>
-
-        <div className="card-premium p-6 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-          <p className="text-sm font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>Répartition par Catégorie (%)</p>
-          <div className="h-[250px] flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={catData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="val">
-                  {catData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "12px", color: "#C9A84C" }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute right-6 flex flex-col gap-2">
-              {catData.map((entry, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ background: COLORS[index % COLORS.length] }}></div>
-                  <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{entry.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+        }
+      >
+        <AdminAnalyticsChartsLazy salesData={salesData} catData={catData} />
+      </Suspense>
 
       <div className="card-premium p-6 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
         <p className="text-sm font-bold mb-6" style={{ color: "var(--color-text-primary)" }}>Top Produits de la Semaine</p>

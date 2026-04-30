@@ -87,17 +87,20 @@ export function Navbar() {
           </button>
           <Link
             to="/search"
+            aria-label="Rechercher"
             className="transition-colors duration-200 hover:text-[#C9A84C]"
             style={{ color: "var(--color-text-secondary)" }}>
             <Search size={20} />
           </Link>
           <Link
             to="/login"
+            aria-label="Mon compte"
             className="hidden sm:inline-flex transition-colors duration-200 hover:text-[#C9A84C]"
             style={{ color: "var(--color-text-secondary)" }}>
             <User size={20} />
           </Link>
           <Link to="/cart"
+            aria-label="Panier"
             className="transition-colors duration-200 hover:text-[#C9A84C] relative"
             style={{ color: "var(--color-text-secondary)" }}>
             <ShoppingCart size={20} />
