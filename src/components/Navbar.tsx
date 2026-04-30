@@ -31,9 +31,13 @@ export function Navbar() {
         <Link to="/" className="font-heading font-bold text-xl tracking-wider flex items-center gap-3 group">
           <div className="relative w-12 h-12 flex-shrink-0">
             <img
-              src="/logo.jpg"
+              src="/logo-96.jpg"
+              srcSet="/logo-96.jpg 1x, /logo-192.jpg 2x"
+              sizes="48px"
               alt="WIZACK AUTO"
               className="w-12 h-12 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 dark:invert dark:brightness-110"
+              width={48}
+              height={48}
               decoding="async"
               fetchPriority="high"
             />

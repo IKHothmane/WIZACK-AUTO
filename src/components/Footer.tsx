@@ -19,9 +19,13 @@ export function Footer() {
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10">
                 <img
-                  src="/logo.jpg"
+                  src="/logo-96.jpg"
+                  srcSet="/logo-96.jpg 1x, /logo-192.jpg 2x"
+                  sizes="40px"
                   alt="WIZACK AUTO"
                   className="w-10 h-10 object-contain rounded-lg dark:invert dark:brightness-110"
+                  width={40}
+                  height={40}
                   decoding="async"
                 />
               </div>
@@ -34,7 +38,7 @@ export function Footer() {
                 </p>
               </div>
             </div>
-            <p className="text-xs leading-relaxed opacity-80" style={{ color: "var(--color-text-secondary)" }}>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-primary)" }}>
               Votre partenaire de confiance pour l'importation et la vente de pièces automobiles de qualité supérieure.
             </p>
           </div>
