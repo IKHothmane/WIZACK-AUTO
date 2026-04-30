@@ -68,12 +68,12 @@ export function Hero3D() {
             </video>
           </>
         ) : (
-          <img
-            src="/ultra.jpeg"
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-            decoding="async"
-            fetchPriority="high"
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(1200px 700px at 20% 30%, rgba(201,168,76,0.22) 0%, transparent 55%), radial-gradient(900px 600px at 80% 20%, rgba(184,134,11,0.14) 0%, transparent 60%), linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.55) 100%)",
+            }}
             aria-hidden="true"
           />
         )}

@@ -212,8 +212,8 @@ const readSse = async (
   }
 };
 
-export function ChatbotWidget() {
-  const [isOpen, setIsOpen] = useState(false);
+export function ChatbotWidget({ initialOpen }: { initialOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(Boolean(initialOpen));
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [conversationId, setConversationId] = useState<string>(() => window.localStorage.getItem(storageConversationKey) || "");

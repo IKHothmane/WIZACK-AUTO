@@ -245,6 +245,7 @@ Ne jamais mélanger huiles différentes sans compatibilité`;
           <select
             value={selectedBrand}
             onChange={(e) => { setSelectedBrand(e.target.value); setSelectedModel(""); }}
+            aria-label="Marque"
             style={{ ...selectStyle, padding: "12px 14px" }}
             onFocus={(e) => (e.currentTarget.style.borderColor = "#C9A84C")}
             onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(201,168,76,0.2)")}
@@ -260,6 +261,7 @@ Ne jamais mélanger huiles différentes sans compatibilité`;
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
             disabled={!selectedBrand}
+            aria-label="Modèle"
             style={{
               ...selectStyle,
               padding: "12px 14px",
@@ -280,6 +282,7 @@ Ne jamais mélanger huiles différentes sans compatibilité`;
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
             disabled={!selectedModel}
+            aria-label="Année"
             style={{
               ...selectStyle,
               padding: "12px 14px",
@@ -395,6 +398,7 @@ Ne jamais mélanger huiles différentes sans compatibilité`;
             type="text"
             value={partQuery}
             onChange={(e) => setPartQuery(e.target.value)}
+            aria-label="Rechercher une pièce (nom ou SKU)"
             placeholder="Rechercher une pièce (nom ou SKU)..."
             className="w-full rounded-2xl pl-11 pr-4 py-4 text-sm outline-none transition-colors"
             style={{

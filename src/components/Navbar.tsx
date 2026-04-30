@@ -33,12 +33,9 @@ export function Navbar() {
             <img
               src="/logo.jpg"
               alt="WIZACK AUTO"
-              className="w-12 h-12 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 block dark:hidden"
-            />
-            <img
-              src="/logodark.jpg"
-              alt="WIZACK AUTO"
-              className="w-12 h-12 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 hidden dark:block"
+              className="w-12 h-12 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 dark:invert dark:brightness-110"
+              decoding="async"
+              fetchPriority="high"
             />
           </div>
           <span className="flex flex-col leading-tight">

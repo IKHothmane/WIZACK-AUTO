@@ -5,7 +5,7 @@ import { Footer } from "./components/Footer";
 import { Hero3D } from "./components/Hero3D";
 import { VehicleSelector } from "./components/VehicleSelector";
 import { AtelierServices } from "./components/AtelierServices";
-import { ShieldCheck, Truck, Headphones, Award, Star, ChevronRight, Package, TrendingUp, Users, User, Settings, ShoppingBag, FileText, Lock, History, Activity, BarChart3, CreditCard, BadgeCheck, Rocket, Wrench, Medal, Search, Plus, LayoutGrid, List, Download, Upload } from "lucide-react";
+import { Bot, ShieldCheck, Truck, Headphones, Award, Star, ChevronRight, Package, TrendingUp, Users, User, Settings, ShoppingBag, FileText, Lock, History, Activity, BarChart3, CreditCard, BadgeCheck, Rocket, Wrench, Medal, Search, Plus, LayoutGrid, List, Download, Upload } from "lucide-react";
 import { useCartStore, useAdminStore, type AtelierService, type BrandConfig } from "./store";
 
 type Product = {
@@ -127,29 +127,34 @@ function PageShell({ children }: { children: ReactNode }) {
       <Navbar />
       <div className="pt-20 flex-1">{children}</div>
       <Footer />
-      <LazyChatbot />
+      <ChatbotLauncher />
     </div>
   );
 }
 
-function LazyChatbot() {
+function ChatbotLauncher() {
   const [enabled, setEnabled] = useState(false);
 
-  useEffect(() => {
-    const start = () => setEnabled(true);
-    const w = window as any;
-    if (typeof w.requestIdleCallback === "function") {
-      const id = w.requestIdleCallback(start, { timeout: 2500 });
-      return () => w.cancelIdleCallback?.(id);
-    }
-    const t = window.setTimeout(start, 1500);
-    return () => window.clearTimeout(t);
-  }, []);
+  if (!enabled) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEnabled(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 z-50"
+        style={{
+          background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%)",
+          boxShadow: "0 0 24px var(--color-primary-glow), 0 4px 16px rgba(0,0,0,0.25)",
+        }}
+        aria-label="Ouvrir WIZACK AI"
+      >
+        <Bot size={26} color="#0A0A0A" />
+      </button>
+    );
+  }
 
-  if (!enabled) return null;
   return (
     <Suspense fallback={null}>
-      <ChatbotWidgetLazy />
+      <ChatbotWidgetLazy initialOpen />
     </Suspense>
   );
 }

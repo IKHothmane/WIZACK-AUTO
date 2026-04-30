@@ -18,8 +18,12 @@ export function Footer() {
           <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10">
-                <img src="/logo.jpg" alt="WIZACK AUTO" className="w-10 h-10 object-contain rounded-lg block dark:hidden" />
-                <img src="/logodark.jpg" alt="WIZACK AUTO" className="w-10 h-10 object-contain rounded-lg hidden dark:block" />
+                <img
+                  src="/logo.jpg"
+                  alt="WIZACK AUTO"
+                  className="w-10 h-10 object-contain rounded-lg dark:invert dark:brightness-110"
+                  decoding="async"
+                />
               </div>
               <div>
                 <p className="font-heading font-extrabold text-base tracking-[0.1em] text-gold-gradient">
