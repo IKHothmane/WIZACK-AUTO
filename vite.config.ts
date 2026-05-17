@@ -52,13 +52,13 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 3000,
+      host: "localhost",
       proxy: {
         "/api/dify": difyProxy,
       },
     },
     preview: {
-      port: 3000,
+      port: 4173,
       proxy: {
         "/api/dify": difyProxy,
       },

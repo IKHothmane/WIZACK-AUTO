@@ -3,7 +3,9 @@ import { persist } from "zustand/middleware";
 
 export type CartItem = {
   id: string;
+  slug?: string;
   name: string;
+  brand?: string;
   price_cents: number;
   currency: string;
   quantity: number;
@@ -80,11 +82,7 @@ type AdminStore = {
   removeBrand: (id: string) => void;
 };
 
-const defaultServices: AtelierService[] = [
-  { id: "s1", name: "Diagnostic Électronique", price: 350, description: "Lecture des codes défauts et analyse complète.", isVisible: true },
-  { id: "s2", name: "Vidange Complète", price: 650, description: "Remplacement huile moteur et filtres.", isVisible: true },
-  { id: "s3", name: "Remplacement Plaquettes", price: 400, description: "Changement des plaquettes de frein avant ou arrière (hors pièces).", isVisible: true },
-];
+const defaultServices: AtelierService[] = [];
 
 const defaultBrands: BrandConfig[] = [
   "Alfa Romeo", "Aston Martin", "Audi", "Bentley", "BMW", "Bugatti", "Chevrolet", 
@@ -117,6 +115,31 @@ export const useAdminStore = create<AdminStore>()(
     }),
     {
       name: "wizack-admin-storage"
+    }
+  )
+);
+
+export type User = {
+  id: string;
+  email: string;
+  name: string;
+};
+
+type UserStore = {
+  user: User | null;
+  login: (user: User) => void;
+  logout: () => void;
+};
+
+export const useUserStore = create<UserStore>()(
+  persist(
+    (set) => ({
+      user: null,
+      login: (user) => set({ user }),
+      logout: () => set({ user: null }),
+    }),
+    {
+      name: "wizack-user-storage",
     }
   )
 );

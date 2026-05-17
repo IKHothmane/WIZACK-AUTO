@@ -57,6 +57,7 @@ export function Footer() {
                   { href: "/marques", label: "Marques" },
                   { href: "/vehicle-selector", label: "Identification" },
                   { href: "/atelier", label: "Atelier" },
+                  { href: "/contact", label: "Contact" },
                 ].map(({ href, label }) => (
                   <Link
                     key={href}
@@ -77,8 +78,8 @@ export function Footer() {
               </h3>
               <div className="grid gap-2.5">
                 {[
-                  { href: "/terms", label: "Conditions" },
-                  { href: "/privacy", label: "Confidentialité" },
+                  { href: "/conditions", label: "Conditions" },
+                  { href: "/confidentialite", label: "Confidentialité" },
                   { href: "/login", label: "Espace Client" },
                   { href: "/register", label: "S'inscrire" },
                 ].map(({ href, label }) => (

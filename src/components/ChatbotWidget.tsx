@@ -1,4 +1,4 @@
-import { Bot, Send, X } from "lucide-react";
+import { Send, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -364,7 +364,7 @@ export function ChatbotWidget({ initialOpen }: { initialOpen?: boolean }) {
         }}
         aria-label="Ouvrir WIZACK AI"
       >
-        <Bot size={26} color="#0A0A0A" />
+        <img src="/unnamed%20(1).png" alt="WIZACK AI" className="w-7 h-7 object-contain" />
       </button>
 
       <div
@@ -391,7 +391,7 @@ export function ChatbotWidget({ initialOpen }: { initialOpen?: boolean }) {
               className="w-9 h-9 rounded-full flex items-center justify-center"
               style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-light))" }}
             >
-              <Bot size={18} color="#0A0A0A" />
+              <img src="/unnamed%20(1).png" alt="WIZACK AI" className="w-5 h-5 object-contain" />
             </div>
             <div>
               <h3 className="font-bold text-sm" style={{ color: "var(--color-text-primary)" }}>

@@ -2,16 +2,38 @@ import { Search, ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const brands = ["BMW", "Audi", "Mercedes", "Renault", "Peugeot", "Toyota", "Volkswagen", "Honda"];
+const brands = [
+  "Alfa Romeo", "Audi", "BMW", "Citroën", "Dacia", "Fiat", "Ford", "Honda", "Hyundai", 
+  "Jeep", "Kia", "Land Rover", "Mercedes-Benz", "Mini", "Nissan", "Opel", "Peugeot", 
+  "Porsche", "Renault", "Seat", "Skoda", "Tesla", "Toyota", "Volkswagen", "Volvo"
+].sort();
+
 const models: Record<string, string[]> = {
-  BMW: ["Série 1", "Série 3", "Série 5", "X3", "X5"],
-  Audi: ["A3", "A4", "A6", "Q3", "Q5"],
-  Mercedes: ["Classe A", "Classe C", "Classe E", "GLC", "GLE"],
-  Renault: ["Clio", "Megane", "Kadjar", "Duster", "Captur"],
-  Peugeot: ["208", "308", "3008", "5008", "2008"],
-  Toyota: ["Yaris", "Corolla", "RAV4", "Camry", "C-HR"],
-  Volkswagen: ["Polo", "Golf", "Passat", "Tiguan", "T-Roc"],
-  Honda: ["Civic", "CR-V", "HR-V", "Jazz", "Accord"],
+  "Alfa Romeo": ["Giulietta", "Giulia", "Stelvio", "Tonale"],
+  "Audi": ["A1", "A3", "A4", "A5", "A6", "Q2", "Q3", "Q5", "Q7", "TT"],
+  "BMW": ["Série 1", "Série 2", "Série 3", "Série 4", "Série 5", "X1", "X2", "X3", "X4", "X5"],
+  "Citroën": ["C1", "C3", "C3 Aircross", "C4", "C5 Aircross", "Berlingo"],
+  "Dacia": ["Sandero", "Logan", "Duster", "Spring", "Jogger"],
+  "Fiat": ["500", "500X", "Panda", "Tipo"],
+  "Ford": ["Fiesta", "Focus", "Mustang", "Puma", "Kuga", "Ranger"],
+  "Honda": ["Civic", "Jazz", "HR-V", "CR-V"],
+  "Hyundai": ["i10", "i20", "i30", "Kona", "Tucson", "Santa Fe"],
+  "Jeep": ["Renegade", "Compass", "Wrangler"],
+  "Kia": ["Picanto", "Rio", "Ceed", "Niro", "Sportage", "EV6"],
+  "Land Rover": ["Range Rover", "Evoque", "Discovery", "Defender"],
+  "Mercedes-Benz": ["Classe A", "Classe B", "Classe C", "Classe E", "CLA", "GLA", "GLC", "GLE"],
+  "Mini": ["Hatch", "Clubman", "Countryman"],
+  "Nissan": ["Micra", "Juke", "Qashqai", "X-Trail", "Leaf"],
+  "Opel": ["Corsa", "Astra", "Mokka", "Grandland"],
+  "Peugeot": ["208", "308", "408", "508", "2008", "3008", "5008"],
+  "Porsche": ["911", "Panamera", "Macan", "Cayenne", "Taycan"],
+  "Renault": ["Twingo", "Clio", "Captur", "Megane", "Arkana", "Austral", "Kangoo"],
+  "Seat": ["Ibiza", "Leon", "Arona", "Ateca"],
+  "Skoda": ["Fabia", "Octavia", "Superb", "Kamiq", "Karoq", "Kodiaq"],
+  "Tesla": ["Model 3", "Model S", "Model X", "Model Y"],
+  "Toyota": ["Aygo", "Yaris", "Corolla", "C-HR", "RAV4", "Hilux"],
+  "Volkswagen": ["Up!", "Polo", "Golf", "ID.3", "ID.4", "Passat", "T-Roc", "Tiguan"],
+  "Volvo": ["XC40", "XC60", "XC90", "V60"]
 };
 const years = Array.from({ length: 15 }, (_, i) => (2024 - i).toString());
 
