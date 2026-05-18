@@ -1,11 +1,10 @@
-import { useState, useEffect, useMemo, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageShell } from "../components/PageShell";
 import { 
+  type Product,
   type Category as DbCategory, 
   type Subcategory as DbSubcategory,
-  isSupabaseConfigured,
-  fetchSubcategoriesForCategory,
   slugifyCategory,
   PNEUS_SUBCATEGORIES
 } from "../lib/supabase";
@@ -36,28 +35,33 @@ function PageCard({ title, subtitle, children }: { title: string; subtitle?: str
   );
 }
 
-export function CategorySubPage({ categories }: { categories: DbCategory[] }) {
+export function CategorySubPage({ categories, products }: { categories: DbCategory[]; products: Product[] }) {
   const { slug = "" } = useParams();
   const category = useMemo(() => categories.find((c) => c.slug === slug) || null, [categories, slug]);
-  const [items, setItems] = useState<DbSubcategory[]>([]);
-
-  useEffect(() => {
-    if (!slug) return;
-    if (!category) return;
-    if (!isSupabaseConfigured()) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const next = await fetchSubcategoriesForCategory({ slug, name: category.name });
-        if (!cancelled) setItems(next.filter((s) => s.is_active));
-      } catch {
-        return;
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [category, slug]);
+  const items = useMemo<DbSubcategory[]>(() => {
+    if (!category) return [];
+    const normalizeKey = (value: string) => String(value || "").trim().toLowerCase();
+    const catKey = normalizeKey(category.name);
+    const map = new Map<string, DbSubcategory>();
+    let pos = 0;
+    for (const p of products) {
+      if (normalizeKey(p.category) !== catKey) continue;
+      const sub = String(p.subcategory || "").trim();
+      if (!sub) continue;
+      const key = normalizeKey(sub);
+      if (map.has(key)) continue;
+      map.set(key, {
+        id: `sub-${category.slug}-${key}`,
+        parent_slug: category.slug,
+        name: sub,
+        slug: slugifyCategory(sub),
+        position: pos++,
+        is_active: true,
+        image_url: undefined,
+      });
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
+  }, [category, products]);
 
   const fallback = useMemo<DbSubcategory[]>(() => {
     const slugNorm = slugifyCategory(category?.name || "");

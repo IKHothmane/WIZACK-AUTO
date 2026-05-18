@@ -8,6 +8,8 @@ import {
   fetchProducts, 
   isSupabaseConfigured, 
   slugifyCategory, 
+  type Product as DbProduct,
+  type Category as DbCategory,
   type AtelierService as DbAtelierService 
 } from "../lib/supabase";
 import { formatPrice } from "../lib/formatters";
@@ -50,7 +52,15 @@ const getLocalFallbackImageForCategory = (categorySlugOrName: string) => {
   return "/moteur.png";
 };
 
-export function HomePage({ services }: { services: DbAtelierService[] }) {
+export function HomePage({
+  services,
+  products = [],
+  categories = [],
+}: {
+  services: DbAtelierService[];
+  products?: DbProduct[];
+  categories?: DbCategory[];
+}) {
   const [carouselCategories, setCarouselCategories] = useState<HomeCategoryCard[]>([]);
   const [carouselProgress, setCarouselProgress] = useState(0);
   const [carouselBaseRotateZ, setCarouselBaseRotateZ] = useState(-10);
@@ -97,6 +107,134 @@ export function HomePage({ services }: { services: DbAtelierService[] }) {
 
     const load = async () => {
       try {
+        const categoriesFromProps = (Array.isArray(categories) ? categories : []).filter((c) => c.is_active);
+        const productsFromProps = Array.isArray(products) ? products : [];
+
+        if (categoriesFromProps.length) {
+          const seen = new Set<string>();
+          const uniq = categoriesFromProps.filter((c) => {
+            if (!c.slug) return false;
+            if (seen.has(c.slug)) return false;
+            seen.add(c.slug);
+            return true;
+          });
+
+          const normalizeKey = (value: string) => String(value || "").trim().toLowerCase();
+          const moteurCat =
+            uniq.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Moteur"))) ||
+            uniq.find((c) => normalizeKey(c.name) === normalizeKey("Moteur"));
+          const engineFallback = moteurCat?.image_url || "/moteur.png";
+          if (!cancelled) setEngineCategorySlug(moteurCat?.slug || "");
+          if (!cancelled) setEngineImageUrl(engineFallback);
+          const freinageCat =
+            uniq.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Freinage"))) ||
+            uniq.find((c) => normalizeKey(c.name) === normalizeKey("Freinage"));
+          const brakeFallback = freinageCat?.image_url || getLocalFallbackImageForCategory("freinage");
+          if (!cancelled) setBrakeCategorySlug(freinageCat?.slug || "");
+          if (!cancelled) setBrakeImageUrl(brakeFallback);
+
+          const suspensionCat =
+            uniq.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Suspension et bras"))) ||
+            uniq.find((c) => normalizeKey(c.name) === normalizeKey("Suspension et bras")) ||
+            uniq.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Amortissement"))) ||
+            uniq.find((c) => normalizeKey(c.name) === normalizeKey("Amortissement"));
+          const suspensionFallback = suspensionCat?.image_url || "https://images.unsplash.com/photo-1578319439584-104c94d37305?w=400&q=80";
+          if (!cancelled) setSuspensionCategorySlug(suspensionCat?.slug || "");
+          if (!cancelled) setSuspensionImageUrl(suspensionFallback);
+
+          if (productsFromProps.length) {
+            const moteurKey = normalizeKey(moteurCat?.name || "Moteur");
+            const moteurProducts = productsFromProps.filter((p) => {
+              const c = normalizeKey(p.category);
+              return c === moteurKey || c === normalizeKey("Moteur");
+            });
+            const moteurStock = moteurProducts.reduce((sum, p) => sum + Math.max(0, Number(p.stock) || 0), 0);
+            if (!cancelled) {
+              setEngineProductsCount(moteurProducts.length);
+              setEngineStockTotal(moteurStock);
+            }
+
+            const engineDesired = ["Filtre", "Filtres", "Bougies", "Injection", "Courroies", "Refroidissement", "Vidange"].map(normalizeKey);
+            let pickedEngine: { title: string; image?: string } | null = null;
+            for (const sub of engineDesired) {
+              const m = moteurProducts.filter((p) => normalizeKey(p.subcategory || "") === sub);
+              if (m.length) {
+                const mImg = m.filter((p) => Boolean(p.image));
+                const from = mImg.length ? mImg : m;
+                const p = from[Math.floor(Math.random() * from.length)];
+                pickedEngine = { title: String(p.subcategory || "").trim() || "Moteur", image: p.image || undefined };
+                break;
+              }
+            }
+            if (!pickedEngine && moteurProducts.length) {
+              const withImage = moteurProducts.filter((p) => Boolean(p.image));
+              const from = withImage.length ? withImage : moteurProducts;
+              const p = from[Math.floor(Math.random() * from.length)];
+              pickedEngine = { title: String(p.subcategory || "").trim() || "Moteur", image: p.image || undefined };
+            }
+            if (pickedEngine) {
+              if (!cancelled) {
+                setEngineTitle(pickedEngine.title);
+                setEngineImageUrl(pickedEngine.image || engineFallback);
+              }
+            } else {
+              if (!cancelled) {
+                setEngineTitle("Moteur");
+                setEngineImageUrl(engineFallback);
+              }
+            }
+
+            const target = normalizeKey("Disques de frein");
+            const matches = productsFromProps.filter((p) => normalizeKey(p.category) === normalizeKey("Freinage") && normalizeKey(p.subcategory || "") === target);
+            const withImage = matches.filter((p) => Boolean(p.image));
+            const pickFrom = withImage.length ? withImage : matches;
+            if (pickFrom.length) {
+              const picked = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+              const url = picked.image || brakeFallback;
+              if (!cancelled) setBrakeImageUrl(url);
+            }
+
+            const suspensionCats = new Set([normalizeKey("Suspension et bras"), normalizeKey("Amortissement"), normalizeKey("Suspension")]);
+            const desired = ["Amortisseurs", "Bras de suspension", "Ressort", "Coupelle d'amortisseur", "Kit de suspension"].map(normalizeKey);
+            let pickedSusp: { title: string; image?: string } | null = null;
+            for (const sub of desired) {
+              const m = productsFromProps.filter((p) => suspensionCats.has(normalizeKey(p.category)) && normalizeKey(p.subcategory || "") === sub);
+              if (m.length) {
+                const mImg = m.filter((p) => Boolean(p.image));
+                const from = mImg.length ? mImg : m;
+                const p = from[Math.floor(Math.random() * from.length)];
+                pickedSusp = { title: String(p.subcategory || "").trim() || "Suspension", image: p.image || undefined };
+                break;
+              }
+            }
+            if (pickedSusp) {
+              if (!cancelled) {
+                setSuspensionTitle(pickedSusp.title);
+                setSuspensionImageUrl(pickedSusp.image || suspensionFallback);
+              }
+            } else {
+              if (!cancelled) setSuspensionTitle("Suspension");
+            }
+          } else {
+            if (!cancelled) {
+              setEngineProductsCount(0);
+              setEngineStockTotal(0);
+            }
+          }
+
+          const list = shuffle(uniq).map((c) => ({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            imageUrl: c.image_url || getLocalFallbackImageForCategory(c.slug || c.name),
+          }));
+          if (!cancelled) {
+            setCarouselCategories(list.length ? list : makeFallbackCarousel());
+            setCarouselProgress(0);
+          }
+          return;
+        }
+
         if (!isSupabaseConfigured()) {
           if (!cancelled) {
             setCarouselCategories(makeFallbackCarousel());
@@ -112,14 +250,14 @@ export function HomePage({ services }: { services: DbAtelierService[] }) {
 
         const categoriesRaw = (await fetchCategories()).filter((c) => c.is_active);
         const seen = new Set<string>();
-        const categories = categoriesRaw.filter((c) => {
+        const dbCategories = categoriesRaw.filter((c) => {
           if (!c.slug) return false;
           if (seen.has(c.slug)) return false;
           seen.add(c.slug);
           return true;
         });
 
-        if (!categories.length) {
+        if (!dbCategories.length) {
           if (!cancelled) {
             setCarouselCategories(makeFallbackCarousel());
             setCarouselProgress(0);
@@ -134,23 +272,23 @@ export function HomePage({ services }: { services: DbAtelierService[] }) {
 
         const normalizeKey = (value: string) => String(value || "").trim().toLowerCase();
         const moteurCat =
-          categories.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Moteur"))) ||
-          categories.find((c) => normalizeKey(c.name) === normalizeKey("Moteur"));
+          dbCategories.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Moteur"))) ||
+          dbCategories.find((c) => normalizeKey(c.name) === normalizeKey("Moteur"));
         const engineFallback = moteurCat?.image_url || "/moteur.png";
         if (!cancelled) setEngineCategorySlug(moteurCat?.slug || "");
         if (!cancelled) setEngineImageUrl(engineFallback);
         const freinageCat =
-          categories.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Freinage"))) ||
-          categories.find((c) => normalizeKey(c.name) === normalizeKey("Freinage"));
+          dbCategories.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Freinage"))) ||
+          dbCategories.find((c) => normalizeKey(c.name) === normalizeKey("Freinage"));
         const brakeFallback = freinageCat?.image_url || getLocalFallbackImageForCategory("freinage");
         if (!cancelled) setBrakeCategorySlug(freinageCat?.slug || "");
         if (!cancelled) setBrakeImageUrl(brakeFallback);
 
         const suspensionCat =
-          categories.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Suspension et bras"))) ||
-          categories.find((c) => normalizeKey(c.name) === normalizeKey("Suspension et bras")) ||
-          categories.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Amortissement"))) ||
-          categories.find((c) => normalizeKey(c.name) === normalizeKey("Amortissement"));
+          dbCategories.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Suspension et bras"))) ||
+          dbCategories.find((c) => normalizeKey(c.name) === normalizeKey("Suspension et bras")) ||
+          dbCategories.find((c) => normalizeKey(c.slug) === normalizeKey(slugifyCategory("Amortissement"))) ||
+          dbCategories.find((c) => normalizeKey(c.name) === normalizeKey("Amortissement"));
         const suspensionFallback = suspensionCat?.image_url || "https://images.unsplash.com/photo-1578319439584-104c94d37305?w=400&q=80";
         if (!cancelled) setSuspensionCategorySlug(suspensionCat?.slug || "");
         if (!cancelled) setSuspensionImageUrl(suspensionFallback);
@@ -233,7 +371,7 @@ export function HomePage({ services }: { services: DbAtelierService[] }) {
           void 0;
         }
 
-        const list = shuffle(categories).map((c) => ({
+        const list = shuffle(dbCategories).map((c) => ({
           id: c.id,
           name: c.name,
           slug: c.slug,
@@ -429,11 +567,20 @@ export function HomePage({ services }: { services: DbAtelierService[] }) {
                   </div>
                   <div className="space-y-3">
                     <p className="text-sm font-medium text-[var(--text)] tracking-widest">{String(engineTitle || "Moteur").toUpperCase()}</p>
-                    <p className="text-xs text-[var(--text)]/60">{engineProductsCount} PRODUITS • STOCK {engineStockTotal}</p>
+                    <div className="flex items-center gap-3 text-[var(--text)]/70">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-base font-black text-[var(--text)]">{engineProductsCount > 0 ? engineProductsCount : 1200}</span>
+                        <span className="text-[10px] font-bold tracking-[0.25em] uppercase">Produits</span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-base font-black text-[var(--text)]">{engineStockTotal > 0 ? engineStockTotal : 25000}</span>
+                        <span className="text-[10px] font-bold tracking-[0.25em] uppercase">Stock</span>
+                      </div>
+                    </div>
                     <div className="h-px bg-[var(--border)]" />
                     <div className="flex items-end gap-1 h-10 opacity-70">
                       {Array.from({ length: 10 }).map((_, i) => {
-                        const seed = engineProductsCount * 31 + engineStockTotal * 7;
+                        const seed = (engineProductsCount > 0 ? engineProductsCount : 1200) * 31 + (engineStockTotal > 0 ? engineStockTotal : 25000) * 7;
                         const h = 35 + ((seed + i * 17) % 66);
                         return (
                         <div key={i} className="flex-1 bg-[#D4AF37]/30 rounded-t-sm transition-all group-hover:bg-[#D4AF37]/60" style={{ height: `${h}%` }} />

@@ -39,6 +39,36 @@ const getEnv = () => {
   return { url, anonKey };
 };
 
+const getTableOverride = (key: string) => {
+  const v = (import.meta as any).env?.[key] as string | undefined;
+  const cleaned = String(v || "").trim();
+  return cleaned || null;
+};
+
+const uniqNonEmpty = (values: Array<string | null | undefined>) => {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const v of values) {
+    const s = String(v || "").trim();
+    if (!s) continue;
+    const k = s.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(s);
+  }
+  return out;
+};
+
+export const isSupabaseMissingTableError = (err: unknown) => {
+  const anyErr = err as any;
+  const code = String(anyErr?.code || "");
+  if (code === "PGRST205") return true;
+  const msg = String(anyErr?.message || "");
+  if (!msg) return false;
+  const m = msg.toLowerCase();
+  return m.includes("could not find the table") || m.includes("table") && m.includes("schema cache");
+};
+
 export const isSupabaseConfigured = () => {
   const { url, anonKey } = getEnv();
   return Boolean(url && anonKey);
@@ -91,7 +121,19 @@ let cachedProductsTable: string | null = null;
 const resolveProductsTable = async () => {
   if (cachedProductsTable) return cachedProductsTable;
   const client = getSupabaseClient();
-  const candidates = ["products", "Product"];
+  const override = getTableOverride("VITE_SUPABASE_PRODUCTS_TABLE");
+  const candidates = uniqNonEmpty([
+    override,
+    "products",
+    "product",
+    "Products",
+    "Product",
+    "produits",
+    "produit",
+    "items",
+    "catalog_products",
+    "catalogue_products",
+  ]);
   let lastError: unknown = null;
 
   for (const table of candidates) {
@@ -103,7 +145,9 @@ const resolveProductsTable = async () => {
     lastError = error;
   }
 
-  throw new Error(`Table produits introuvable sur Supabase (essayé: ${candidates.join(", ")}). ${String((lastError as any)?.message || lastError)}`);
+  throw new Error(
+    `Table produits introuvable sur Supabase (essayé: ${candidates.join(", ")}). ${String((lastError as any)?.message || lastError)}`
+  );
 };
 
 const normalizeProduct = (row: DbProductRow): Product | null => {
@@ -269,7 +313,16 @@ let cachedCategoriesTable: string | null = null;
 const resolveCategoriesTable = async () => {
   if (cachedCategoriesTable) return cachedCategoriesTable;
   const client = getSupabaseClient();
-  const candidates = ["categories", "Category"];
+  const override = getTableOverride("VITE_SUPABASE_CATEGORIES_TABLE");
+  const candidates = uniqNonEmpty([
+    override,
+    "categories",
+    "category",
+    "Categories",
+    "Category",
+    "categorie",
+    "categories_auto",
+  ]);
   let lastError: unknown = null;
 
   for (const table of candidates) {
@@ -444,7 +497,18 @@ let cachedSubcategoriesTable: string | null = null;
 const resolveSubcategoriesTable = async () => {
   if (cachedSubcategoriesTable) return cachedSubcategoriesTable;
   const client = getSupabaseClient();
-  const candidates = ["subcategories", "Subcategory"];
+  const override = getTableOverride("VITE_SUPABASE_SUBCATEGORIES_TABLE");
+  const candidates = uniqNonEmpty([
+    override,
+    "subcategories",
+    "subcategory",
+    "Subcategories",
+    "Subcategory",
+    "sub_categories",
+    "sous_categories",
+    "souscategories",
+    "sous-categories",
+  ]);
   let lastError: unknown = null;
 
   for (const table of candidates) {
@@ -589,7 +653,17 @@ let cachedAtelierServicesTable: string | null = null;
 const resolveAtelierServicesTable = async () => {
   if (cachedAtelierServicesTable) return cachedAtelierServicesTable;
   const client = getSupabaseClient();
-  const candidates = ["atelier_services", "atelierServices", "atelier"];
+  const override = getTableOverride("VITE_SUPABASE_ATELIER_SERVICES_TABLE");
+  const candidates = uniqNonEmpty([
+    override,
+    "atelier_services",
+    "atelier_service",
+    "atelierServices",
+    "atelier",
+    "services",
+    "services_atelier",
+    "atelier_service_items",
+  ]);
   let lastError: unknown = null;
 
   for (const table of candidates) {
@@ -810,7 +884,8 @@ let cachedBrandsTable: string | null = null;
 const resolveBrandsTable = async () => {
   if (cachedBrandsTable) return cachedBrandsTable;
   const client = getSupabaseClient();
-  const candidates = ["brands", "marques", "Brands", "Marques"];
+  const override = getTableOverride("VITE_SUPABASE_BRANDS_TABLE");
+  const candidates = uniqNonEmpty([override, "brands", "brand", "marques", "marque", "Brands", "Marques"]);
   let lastError: unknown = null;
 
   for (const table of candidates) {

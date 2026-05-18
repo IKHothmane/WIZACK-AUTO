@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronRight, Package, Search, Wrench } from "lucide-react";
 import { PageShell } from "../components/PageShell";
-import { type Product } from "../lib/supabase";
+import { type Category, type Product } from "../lib/supabase";
 import { formatPrice } from "../lib/formatters";
 
 function SectionTitle({ label, title, subtitle }: { label: string; title: string; subtitle?: string }) {
@@ -228,11 +228,13 @@ const PartRequestForm = ({ subcategory, imageUrl }: { subcategory: string, image
 
 export function CataloguePage({ 
   products, 
+  categories = [],
   dbTireWidths = [], 
   dbTireHeights = [], 
   dbTireDiameters = [] 
 }: { 
   products: Product[],
+  categories?: Category[],
   dbTireWidths?: string[],
   dbTireHeights?: string[],
   dbTireDiameters?: string[]
@@ -323,14 +325,14 @@ export function CataloguePage({
   }, [brand, category, q, subcategory, products]);
 
   const subcategoryCards = useMemo(() => {
-    if (!category || isPneusSearch) return [];
+    if (isPneusSearch) return [];
     const bFilter = normalizeBrand(brand);
     const base = products.filter((p) => {
       if (bFilter) {
         const pb = normalizeBrand(p.brand);
         if (pb !== bFilter && !pb.includes(bFilter) && !bFilter.includes(pb)) return false;
       }
-      if (p.category !== category) return false;
+      if (category && p.category !== category) return false;
       if (q) {
         const hay = `${p.name} ${p.brand} ${p.category} ${p.subcategory || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -340,7 +342,7 @@ export function CataloguePage({
 
     const map = new Map<
       string,
-      { name: string; count: number; image?: string }
+      { name: string; count: number; image?: string; category: string }
     >();
 
     for (const p of base) {
@@ -348,7 +350,7 @@ export function CataloguePage({
       if (!sc) continue;
       const existing = map.get(sc);
       if (!existing) {
-        map.set(sc, { name: sc, count: 1, image: p.image || undefined });
+        map.set(sc, { name: sc, count: 1, image: p.image || undefined, category: p.category || "" });
       } else {
         existing.count += 1;
         if (!existing.image && p.image) existing.image = p.image;
@@ -367,10 +369,14 @@ export function CataloguePage({
   );
   const categoriesList = useMemo(
     () =>
-      Array.from(new Set(products.map((p) => String(p.category || "").trim()).filter(Boolean))).sort((a, b) =>
-        a.localeCompare(b, "fr", { sensitivity: "base" })
-      ),
-    [products]
+      products.length
+        ? Array.from(new Set(products.map((p) => String(p.category || "").trim()).filter(Boolean))).sort((a, b) =>
+            a.localeCompare(b, "fr", { sensitivity: "base" })
+          )
+        : Array.from(
+            new Set((categories || []).filter((c) => c.is_active).map((c) => String(c.name || "").trim()).filter(Boolean))
+          ).sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" })),
+    [products, categories]
   );
   const subcategoriesList = useMemo(() => {
     if (!category) return [];
@@ -522,19 +528,19 @@ export function CataloguePage({
                 </div>
 
                 <div className="lg:col-span-3 space-y-6">
-                  {category && !subcategory && subcategoryCards.length ? (
+                  {!subcategory && subcategoryCards.length ? (
                     <div className="card-premium p-6 sm:p-8">
                       <p className="text-sm font-extrabold" style={{ color: "var(--color-text-primary)" }}>
-                        Sous-catégories
+                        {category ? "Sous-catégories" : "Toutes les catégories et services"}
                       </p>
                       <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                        Choisis une sous-catégorie pour afficher les produits.
+                        {category ? "Choisis une sous-catégorie pour afficher les produits ou faire une demande." : "Parcourez nos sous-catégories ou utilisez la recherche."}
                       </p>
                       <div className="mt-5 grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-5">
                         {subcategoryCards.map((sc) => (
                           <Link
                             key={sc.name}
-                            to={buildHref({ subcategory: sc.name })}
+                            to={buildHref({ category: sc.category, subcategory: sc.name })}
                             className="card-premium p-3 sm:p-5 block group animate-fade-in-up"
                           >
                             <div className="flex flex-col gap-2">
@@ -571,51 +577,11 @@ export function CataloguePage({
                       imageUrl={products.find(p => p.subcategory === subcategory && p.image)?.image} 
                     />
                   )}
-                  {visible.length ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-5">
-                      {visible.map((p, i) => (
-                        <Link
-                          key={p.id}
-                          to={`/produit/${p.slug}`}
-                          className="card-premium p-3 sm:p-5 block group animate-fade-in-up"
-                          style={{ animationDelay: `${i * 0.05}s` }}
-                        >
-                          <div className="flex flex-col gap-1.5">
-                            <div>
-                              <p className="text-[9px] font-bold tracking-[0.15em] uppercase opacity-60" style={{ color: "var(--color-text-secondary)" }}>
-                                {p.brand}
-                              </p>
-                              <p className="mt-0.5 text-[11px] sm:text-sm font-extrabold leading-tight line-clamp-2" style={{ color: "var(--color-text-primary)" }}>
-                                {p.name}
-                              </p>
-                            </div>
-                            <span
-                              className="text-[8px] sm:text-[10px] font-extrabold rounded-full px-2 py-0.5 w-fit"
-                              style={{
-                                background: p.stock > 0 ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)",
-                                border: `1px solid ${p.stock > 0 ? "rgba(34,197,94,0.20)" : "rgba(239,68,68,0.20)"}`,
-                                color: p.stock > 0 ? "rgb(34,197,94)" : "rgb(239,68,68)",
-                              }}
-                            >
-                              {p.stock > 0 ? "En stock" : "Sur commande"}
-                            </span>
-                          </div>
-                          <div className="mt-3 sm:mt-5 pt-3 sm:pt-4 flex items-center justify-between" style={{ borderTop: "1px solid var(--border)" }}>
-                            <span className="text-sm sm:text-base font-black" style={{ color: "var(--color-primary)" }}>
-                              {formatPrice(p.price_cents, p.currency)}
-                            </span>
-                            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-bold transition-all duration-200 group-hover:gap-2" style={{ color: "var(--color-text-secondary)" }}>
-                              Voir <ChevronRight size={13} />
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
+                  {subcategoryCards.length === 0 && !subcategory && (
                     <div className="card-premium p-8 text-center">
                       <Package size={40} className="mx-auto mb-3" style={{ color: "var(--color-text-secondary)", opacity: 0.4 }} />
                       <p className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>
-                        Aucun produit trouvé.
+                        Aucun résultat.
                       </p>
                       <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
                         Change les filtres ou réinitialise la recherche.

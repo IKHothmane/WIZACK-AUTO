@@ -7,8 +7,8 @@ import {
   type Product, 
   type Category as DbCategory, 
   type Subcategory as DbSubcategory,
-  isSupabaseConfigured,
-  fetchSubcategoriesForCategory
+  slugifyCategory,
+  PNEUS_SUBCATEGORIES
 } from "../lib/supabase";
 
 function SectionTitle({ label, title, subtitle }: { label: string; title: string; subtitle?: string }) {
@@ -33,7 +33,7 @@ const CategoryCard = memo(({
   index: number;
   subs: DbSubcategory[];
   loading: boolean;
-  ensureSubcategoriesLoaded: (cat: DbCategory) => Promise<void>;
+  ensureSubcategoriesLoaded: (cat: DbCategory) => void;
   navigate: any;
 }) => {
   const [hoverOpen, setHoverOpen] = useState(false);
@@ -261,33 +261,50 @@ export function CategoriesPage({ products, categories }: { products: Product[]; 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cardsRef = useRef<Array<HTMLDivElement | null>>([]);
   const [subBySlug, setSubBySlug] = useState<Record<string, DbSubcategory[]>>({});
-  const [subLoadingBySlug, setSubLoadingBySlug] = useState<Record<string, boolean>>({});
 
-  const ensureSubcategoriesLoaded = useCallback(async (category: DbCategory) => {
+  const ensureSubcategoriesLoaded = useCallback((category: DbCategory) => {
     const slug = String(category.slug || "").trim();
     if (!slug) return;
     if (Object.prototype.hasOwnProperty.call(subBySlug, slug)) return;
-    if (subLoadingBySlug[slug]) return;
-
-    setSubLoadingBySlug((prev) => ({ ...prev, [slug]: true }));
-    try {
-      if (!isSupabaseConfigured()) {
-        setSubBySlug((prev) => ({ ...prev, [slug]: [] }));
-        return;
-      }
-      const next = await fetchSubcategoriesForCategory({ slug, name: category.name });
-      setSubBySlug((prev) => ({ ...prev, [slug]: next.filter((s) => s.is_active) }));
-    } catch {
-      setSubBySlug((prev) => ({ ...prev, [slug]: [] }));
-    } finally {
-      setSubLoadingBySlug((prev) => ({ ...prev, [slug]: false }));
+    const normalizeKey = (value: string) => String(value || "").trim().toLowerCase();
+    const catKey = normalizeKey(category.name);
+    const map = new Map<string, DbSubcategory>();
+    let pos = 0;
+    for (const p of products) {
+      if (normalizeKey(p.category) !== catKey) continue;
+      const sub = String(p.subcategory || "").trim();
+      if (!sub) continue;
+      const key = normalizeKey(sub);
+      if (map.has(key)) continue;
+      map.set(key, {
+        id: `sub-${slug}-${key}`,
+        parent_slug: slug,
+        name: sub,
+        slug: slugifyCategory(sub),
+        position: pos++,
+        is_active: true,
+        image_url: undefined,
+      });
     }
-  }, [subBySlug, subLoadingBySlug]);
+    let list = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
+    const slugNorm = slugifyCategory(category.name || "");
+    if (!list.length && (slug === "pneus-et-produits-associes" || slugNorm === "pneus-et-produits-associes")) {
+      list = PNEUS_SUBCATEGORIES.map((name, i) => ({
+        id: `sub-${slugNorm}-${i}`,
+        parent_slug: slugNorm,
+        name,
+        slug: slugifyCategory(name),
+        position: i,
+        is_active: true,
+        image_url: undefined,
+      }));
+    }
+    setSubBySlug((prev) => ({ ...prev, [slug]: list }));
+  }, [products, subBySlug]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
     categories.forEach((c) => {
-      if (c.slug === "pneus-et-produits-associes") void ensureSubcategoriesLoaded(c);
+      if (c.slug === "pneus-et-produits-associes") ensureSubcategoriesLoaded(c);
     });
   }, [categories, ensureSubcategoriesLoaded]);
 
@@ -334,7 +351,7 @@ export function CategoriesPage({ products, categories }: { products: Product[]; 
                 category={c} 
                 index={i}
                 subs={subBySlug[c.slug] || []}
-                loading={Boolean(subLoadingBySlug[c.slug])}
+                loading={false}
                 ensureSubcategoriesLoaded={ensureSubcategoriesLoaded}
                 navigate={navigate}
               />

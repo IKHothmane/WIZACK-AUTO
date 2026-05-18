@@ -2,13 +2,16 @@ import { lazy, Suspense, useEffect, useState, useMemo } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { 
   fetchProducts, 
-  fetchCategories, 
-  fetchAtelierServices, 
+  fetchCategories,
+  fetchAtelierServices,
   fetchBrands,
   fetchTireWidths,
   fetchTireHeights,
   fetchTireDiameters,
   isSupabaseConfigured,
+  isSupabaseMissingTableError,
+  slugifyCategory,
+  MAIN_CATEGORIES,
   type Product,
   type Category as DbCategory,
   type AtelierService as DbAtelierService,
@@ -66,6 +69,65 @@ export default function App() {
   const [tireDiameters, setTireDiameters] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const deriveCategoriesFromProducts = (rows: Product[]): DbCategory[] => {
+    const seen = new Map<string, { name: string; slug: string }>();
+    for (const p of rows) {
+      const name = String(p?.category || "").trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.set(key, { name, slug: slugifyCategory(name) });
+    }
+    const list = Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
+    return list.map((c, i) => ({
+      id: `cat-${c.slug || i}`,
+      name: c.name,
+      slug: c.slug,
+      position: i,
+      is_active: true,
+      image_url: undefined,
+    }));
+  };
+
+  const deriveFallbackCategories = (): DbCategory[] => {
+    const seen = new Set<string>();
+    const list = MAIN_CATEGORIES.filter((name) => {
+      const n = String(name || "").trim();
+      if (!n) return false;
+      const k = n.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    return list.map((name, i) => ({
+      id: `cat-${slugifyCategory(name) || i}`,
+      name,
+      slug: slugifyCategory(name),
+      position: i,
+      is_active: true,
+      image_url: undefined,
+    }));
+  };
+
+  const deriveBrandsFromProducts = (rows: Product[]): DbBrand[] => {
+    const seen = new Map<string, string>();
+    for (const p of rows) {
+      const name = String(p?.brand || "").trim();
+      if (!name || name === "—") continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.set(key, name);
+    }
+    const list = Array.from(seen.values()).sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+    return list.map((name, i) => ({
+      id: `brand-${slugifyCategory(name) || i}`,
+      name,
+      logo_url: undefined,
+      is_visible: true,
+      position: i,
+    }));
+  };
+
   const searchItems = useMemo(() => {
     const items: Array<{ label: string; kind: "category" | "subcategory"; category?: string }> = [];
 
@@ -105,41 +167,59 @@ export default function App() {
     const load = async () => {
       try {
         if (!isSupabaseConfigured()) {
+          setCategories(deriveFallbackCategories());
           setLoading(false);
           return;
         }
+
+        const timeoutMs = 8000;
+        const withTimeout = <T,>(promise: Promise<T>) =>
+          Promise.race<T>([
+            promise,
+            new Promise<T>((_, reject) => {
+              setTimeout(() => reject(new Error("timeout")), timeoutMs);
+            }),
+          ]);
+
         const [pRes, cRes, sRes, bRes, wRes, hRes, dRes] = await Promise.allSettled([
-          fetchProducts(),
-          fetchCategories(),
-          fetchAtelierServices(),
-          fetchBrands(),
-          fetchTireWidths(),
-          fetchTireHeights(),
-          fetchTireDiameters(),
+          withTimeout(fetchProducts()),
+          withTimeout(fetchCategories()),
+          withTimeout(fetchAtelierServices()),
+          withTimeout(fetchBrands()),
+          withTimeout(fetchTireWidths()),
+          withTimeout(fetchTireHeights()),
+          withTimeout(fetchTireDiameters()),
         ]);
 
-        if (pRes.status === "fulfilled") setProducts(pRes.value);
-        else console.error("Load products error:", pRes.reason);
+        const nextProducts = pRes.status === "fulfilled" ? pRes.value : [];
+        if (nextProducts.length) setProducts(nextProducts);
 
-        if (cRes.status === "fulfilled") setCategories(cRes.value.filter((cat) => cat.is_active));
-        else console.error("Load categories error:", cRes.reason);
+        const categoriesOk = cRes.status === "fulfilled" ? cRes.value.filter((cat) => cat.is_active) : [];
+        if (categoriesOk.length) setCategories(categoriesOk);
+        else if (nextProducts.length) setCategories(deriveCategoriesFromProducts(nextProducts));
+        else setCategories(deriveFallbackCategories());
+
+        const brandsOk = bRes.status === "fulfilled" ? bRes.value.filter((br) => br.is_visible) : [];
+        if (brandsOk.length) setBrands(brandsOk);
+        else if (nextProducts.length) setBrands(deriveBrandsFromProducts(nextProducts));
+        else setBrands([]);
 
         if (sRes.status === "fulfilled") setServices(sRes.value);
-        else console.error("Load services error:", sRes.reason);
-
-        if (bRes.status === "fulfilled") setBrands(bRes.value);
-        else console.error("Load brands error:", bRes.reason);
+        else setServices([]);
 
         if (wRes.status === "fulfilled") setTireWidths(wRes.value);
-        else console.error("Load tire widths error:", wRes.reason);
+        else setTireWidths([]);
 
         if (hRes.status === "fulfilled") setTireHeights(hRes.value);
-        else console.error("Load tire heights error:", hRes.reason);
+        else setTireHeights([]);
 
         if (dRes.status === "fulfilled") setTireDiameters(dRes.value);
-        else console.error("Load tire diameters error:", dRes.reason);
+        else setTireDiameters([]);
       } catch (err) {
-        console.error("Load error:", err);
+        if (isSupabaseMissingTableError(err)) {
+          setCategories(deriveFallbackCategories());
+        }
+        setCategories(deriveFallbackCategories());
       } finally {
         setLoading(false);
       }
@@ -155,12 +235,12 @@ export default function App() {
       <Navbar searchItems={searchItems} />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-          <Route path="/" element={<HomePage services={services} />} />
-          <Route path="/catalogue" element={<CataloguePage products={products} dbTireWidths={tireWidths} dbTireHeights={tireHeights} dbTireDiameters={tireDiameters} />} />
+          <Route path="/" element={<HomePage services={services} products={products} categories={categories} />} />
+          <Route path="/catalogue" element={<CataloguePage products={products} categories={categories} dbTireWidths={tireWidths} dbTireHeights={tireHeights} dbTireDiameters={tireDiameters} />} />
           <Route path="/atelier" element={<AtelierPage services={services} />} />
           <Route path="/reservation" element={<ReservationPage services={services} />} />
           <Route path="/categories" element={<CategoriesPage products={products} categories={categories} />} />
-          <Route path="/categories/:slug" element={<CategorySubPage categories={categories} />} />
+          <Route path="/categories/:slug" element={<CategorySubPage categories={categories} products={products} />} />
           <Route path="/marques" element={<MarquesPage products={products} brands={brands} />} />
           <Route path="/produit/:slug" element={<ProductPage products={products} />} />
           <Route path="/cart" element={<CartPage />} />
