@@ -38,6 +38,8 @@ const ProfilePage = lazy(() => import("./pages/AuthPages").then(m => ({ default:
 const TermsPage = lazy(() => import("./pages/LegalPages").then(m => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import("./pages/LegalPages").then(m => ({ default: m.PrivacyPage })));
 const ContactPage = lazy(() => import("./pages/LegalPages").then(m => ({ default: m.ContactPage })));
+const BlogPage = lazy(() => import("./pages/LegalPages").then(m => ({ default: m.BlogPage })));
+const BlogPostPage = lazy(() => import("./pages/LegalPages").then(m => ({ default: m.BlogPostPage })));
 const AdminApp = lazy(() => import("./admin/AdminApp").then(m => ({ default: m.AdminApp })));
 
 function ScrollToTop() {
@@ -57,6 +59,114 @@ function LoadingFallback() {
       </div>
     </div>
   );
+}
+
+function SeoManager({ products }: { products: Product[] }) {
+  const { pathname, search } = useLocation();
+
+  useEffect(() => {
+    const origin = window.location.origin;
+    const url = `${origin}${pathname}${search || ""}`;
+
+    const ensureMeta = (name: string, content: string) => {
+      const head = document.head;
+      if (!head) return;
+      const existing = head.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+      const el = existing ?? document.createElement("meta");
+      el.setAttribute("name", name);
+      el.setAttribute("content", content);
+      if (!existing) head.appendChild(el);
+    };
+
+    const ensureOg = (property: string, content: string) => {
+      const head = document.head;
+      if (!head) return;
+      const existing = head.querySelector(`meta[property="${property}"]`) as HTMLMetaElement | null;
+      const el = existing ?? document.createElement("meta");
+      el.setAttribute("property", property);
+      el.setAttribute("content", content);
+      if (!existing) head.appendChild(el);
+    };
+
+    const ensureCanonical = (href: string) => {
+      const head = document.head;
+      if (!head) return;
+      const existing = head.querySelector(`link[rel="canonical"]`) as HTMLLinkElement | null;
+      const el = existing ?? document.createElement("link");
+      el.setAttribute("rel", "canonical");
+      el.setAttribute("href", href);
+      if (!existing) head.appendChild(el);
+    };
+
+    const set = (title: string, description: string, canonicalPath: string) => {
+      document.title = title;
+      ensureMeta("description", description);
+      ensureCanonical(`${origin}${canonicalPath}`);
+      ensureOg("og:title", title);
+      ensureOg("og:description", description);
+      ensureOg("og:url", `${origin}${canonicalPath}`);
+      ensureOg("og:type", "website");
+      ensureMeta("twitter:card", "summary_large_image");
+    };
+
+    if (pathname.startsWith("/produit/")) {
+      const slug = decodeURIComponent(pathname.replace("/produit/", "")).trim();
+      const p = products.find((x) => x.slug === slug) || null;
+      if (p) {
+        set(
+          `${p.name} — Wizack Auto`,
+          `Achetez ${p.name} (${p.brand}). Livraison rapide au Maroc. Catalogue Wizack Auto.`,
+          `/produit/${encodeURIComponent(p.slug)}`
+        );
+        ensureOg("og:type", "product");
+        if (p.image) ensureOg("og:image", p.image.startsWith("http") ? p.image : `${origin}${p.image}`);
+        return;
+      }
+    }
+
+    if (pathname === "/") {
+      set("Wizack Auto — Pièces Automobiles Premium", "Importation et vente de pièces automobiles. Catalogue, marques, atelier et réservation.", "/");
+      return;
+    }
+    if (pathname === "/catalogue") {
+      set("Catalogue — Wizack Auto", "Parcourez le catalogue Wizack Auto et trouvez la pièce compatible avec votre véhicule.", "/catalogue");
+      return;
+    }
+    if (pathname === "/categories") {
+      set("Catégories — Wizack Auto", "Explorez les catégories de pièces auto et filtrez le catalogue rapidement.", "/categories");
+      return;
+    }
+    if (pathname === "/marques") {
+      set("Marques — Wizack Auto", "Découvrez nos marques et trouvez facilement vos pièces auto.", "/marques");
+      return;
+    }
+    if (pathname === "/atelier") {
+      set("Atelier — Wizack Auto", "Services atelier: diagnostic, révision, freinage, et plus. Prenez rendez-vous.", "/atelier");
+      return;
+    }
+    if (pathname === "/reservation") {
+      set("Réservation — Wizack Auto", "Réservez un service atelier Wizack Auto. Choisissez la prestation et envoyez votre demande.", "/reservation");
+      return;
+    }
+    if (pathname === "/contact") {
+      set("Contact — Wizack Auto", "Contactez Wizack Auto pour une demande de pièce ou un rendez-vous atelier.", "/contact");
+      return;
+    }
+    if (pathname === "/blog") {
+      set("Blog — Wizack Auto", "Guides, conseils et actualités pour choisir les pièces auto et entretenir votre véhicule.", "/blog");
+      return;
+    }
+    if (pathname.startsWith("/blog/")) {
+      ensureCanonical(url);
+      ensureOg("og:url", url);
+      return;
+    }
+
+    ensureCanonical(url);
+    ensureOg("og:url", url);
+  }, [pathname, products, search]);
+
+  return null;
 }
 
 export default function App() {
@@ -232,6 +342,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <SeoManager products={products} />
       <Navbar searchItems={searchItems} />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
@@ -243,6 +354,8 @@ export default function App() {
           <Route path="/categories/:slug" element={<CategorySubPage categories={categories} products={products} />} />
           <Route path="/marques" element={<MarquesPage products={products} brands={brands} />} />
           <Route path="/produit/:slug" element={<ProductPage products={products} />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/panier" element={<Navigate to="/cart" replace />} />
           <Route path="/checkout" element={<CheckoutPage />} />

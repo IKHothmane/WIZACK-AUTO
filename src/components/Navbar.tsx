@@ -31,6 +31,7 @@ export function Navbar({ searchItems = [] }: { searchItems?: Array<{ label: stri
     { href: "/catalogue", label: "Auto's Depot" },
     { href: "/categories", label: "Catégories" },
     { href: "/marques", label: "Marques" },
+    { href: "/blog", label: "Blog" },
     { href: "/contact", label: "Contact" },
   ];
 

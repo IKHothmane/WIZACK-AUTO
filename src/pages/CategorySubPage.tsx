@@ -1,10 +1,12 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageShell } from "../components/PageShell";
 import { 
   type Product,
   type Category as DbCategory, 
   type Subcategory as DbSubcategory,
+  isSupabaseConfigured,
+  fetchSubcategoriesForCategory,
   slugifyCategory,
   PNEUS_SUBCATEGORIES
 } from "../lib/supabase";
@@ -38,6 +40,9 @@ function PageCard({ title, subtitle, children }: { title: string; subtitle?: str
 export function CategorySubPage({ categories, products }: { categories: DbCategory[]; products: Product[] }) {
   const { slug = "" } = useParams();
   const category = useMemo(() => categories.find((c) => c.slug === slug) || null, [categories, slug]);
+  const [fetched, setFetched] = useState<DbSubcategory[]>([]);
+  const [fetching, setFetching] = useState(false);
+
   const items = useMemo<DbSubcategory[]>(() => {
     if (!category) return [];
     const normalizeKey = (value: string) => String(value || "").trim().toLowerCase();
@@ -63,6 +68,32 @@ export function CategorySubPage({ categories, products }: { categories: DbCatego
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
   }, [category, products]);
 
+  useEffect(() => {
+    if (!slug) return;
+    if (!category) return;
+    if (!isSupabaseConfigured()) return;
+    let cancelled = false;
+    setFetching(true);
+    void (async () => {
+      try {
+        const timeoutMs = 8000;
+        const next = await Promise.race([
+          fetchSubcategoriesForCategory({ slug, name: category.name }),
+          new Promise<DbSubcategory[]>((_, reject) => setTimeout(() => reject(new Error("timeout")), timeoutMs)),
+        ]);
+        const active = next.filter((s) => s.is_active);
+        if (!cancelled) setFetched(active);
+      } catch {
+        if (!cancelled) setFetched([]);
+      } finally {
+        if (!cancelled) setFetching(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [category, slug]);
+
   const fallback = useMemo<DbSubcategory[]>(() => {
     const slugNorm = slugifyCategory(category?.name || "");
     if (slug === "pneus-et-produits-associes" || slugNorm === "pneus-et-produits-associes") {
@@ -79,7 +110,7 @@ export function CategorySubPage({ categories, products }: { categories: DbCatego
     return [];
   }, [category?.name, slug]);
 
-  const visible = useMemo(() => (items.length ? items : fallback), [items, fallback]);
+  const visible = useMemo(() => (fetched.length ? fetched : items.length ? items : fallback), [fetched, items, fallback]);
 
   if (!category) {
     return (
@@ -137,7 +168,7 @@ export function CategorySubPage({ categories, products }: { categories: DbCatego
           </div>
           {!visible.length ? (
             <div className="mt-8 card-premium p-6 text-sm" style={{ color: "var(--color-text-secondary)" }}>
-              Aucune sous-catégorie trouvée pour cette catégorie.
+              {fetching ? "Chargement des sous-catégories..." : "Aucune sous-catégorie trouvée pour cette catégorie."}
             </div>
           ) : null}
 

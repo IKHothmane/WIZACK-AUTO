@@ -57,6 +57,7 @@ export function Footer() {
                   { href: "/marques", label: "Marques" },
                   { href: "/vehicle-selector", label: "Identification" },
                   { href: "/atelier", label: "Atelier" },
+                  { href: "/blog", label: "Blog" },
                   { href: "/contact", label: "Contact" },
                 ].map(({ href, label }) => (
                   <Link

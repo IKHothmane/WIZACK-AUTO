@@ -7,6 +7,8 @@ import {
   type Product, 
   type Category as DbCategory, 
   type Subcategory as DbSubcategory,
+  isSupabaseConfigured,
+  fetchSubcategoriesForCategory,
   slugifyCategory,
   PNEUS_SUBCATEGORIES
 } from "../lib/supabase";
@@ -261,11 +263,32 @@ export function CategoriesPage({ products, categories }: { products: Product[]; 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cardsRef = useRef<Array<HTMLDivElement | null>>([]);
   const [subBySlug, setSubBySlug] = useState<Record<string, DbSubcategory[]>>({});
+  const [subLoadingBySlug, setSubLoadingBySlug] = useState<Record<string, boolean>>({});
 
-  const ensureSubcategoriesLoaded = useCallback((category: DbCategory) => {
+  const ensureSubcategoriesLoaded = useCallback(async (category: DbCategory) => {
     const slug = String(category.slug || "").trim();
     if (!slug) return;
     if (Object.prototype.hasOwnProperty.call(subBySlug, slug)) return;
+    if (subLoadingBySlug[slug]) return;
+
+    setSubLoadingBySlug((prev) => ({ ...prev, [slug]: true }));
+    try {
+      if (isSupabaseConfigured()) {
+        const timeoutMs = 8000;
+        const next = await Promise.race([
+          fetchSubcategoriesForCategory({ slug, name: category.name }),
+          new Promise<DbSubcategory[]>((_, reject) => setTimeout(() => reject(new Error("timeout")), timeoutMs)),
+        ]);
+        const active = next.filter((s) => s.is_active);
+        setSubBySlug((prev) => ({ ...prev, [slug]: active }));
+        return;
+      }
+    } catch {
+      void 0;
+    } finally {
+      setSubLoadingBySlug((prev) => ({ ...prev, [slug]: false }));
+    }
+
     const normalizeKey = (value: string) => String(value || "").trim().toLowerCase();
     const catKey = normalizeKey(category.name);
     const map = new Map<string, DbSubcategory>();
@@ -300,11 +323,11 @@ export function CategoriesPage({ products, categories }: { products: Product[]; 
       }));
     }
     setSubBySlug((prev) => ({ ...prev, [slug]: list }));
-  }, [products, subBySlug]);
+  }, [products, subBySlug, subLoadingBySlug]);
 
   useEffect(() => {
     categories.forEach((c) => {
-      if (c.slug === "pneus-et-produits-associes") ensureSubcategoriesLoaded(c);
+      if (c.slug === "pneus-et-produits-associes") void ensureSubcategoriesLoaded(c);
     });
   }, [categories, ensureSubcategoriesLoaded]);
 
@@ -351,7 +374,7 @@ export function CategoriesPage({ products, categories }: { products: Product[]; 
                 category={c} 
                 index={i}
                 subs={subBySlug[c.slug] || []}
-                loading={false}
+                loading={Boolean(subLoadingBySlug[c.slug])}
                 ensureSubcategoriesLoaded={ensureSubcategoriesLoaded}
                 navigate={navigate}
               />
