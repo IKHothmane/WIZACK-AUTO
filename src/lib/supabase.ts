@@ -34,8 +34,15 @@ type DbProductRow = {
 };
 
 const getEnv = () => {
-  const url = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
+  const rawUrl = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
   const anonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string | undefined;
+  const cleanedUrl = String(rawUrl || "")
+    .trim()
+    .replace(/^"+|"+$/g, "")
+    .replace(/\/+$/g, "")
+    .replace(/\/rest\/v1\/?$/i, "")
+    .replace(/\/storage\/v1\/?$/i, "");
+  const url = cleanedUrl || undefined;
   return { url, anonKey };
 };
 
