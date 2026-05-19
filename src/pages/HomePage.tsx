@@ -591,6 +591,7 @@ export function HomePage({
                   </div>
                 </div>
               </Link>
+              
 
               {/* CENTER: Engine Image on Pedestal */}
               <div className="flex items-center justify-center relative min-h-[420px] lg:min-h-[560px] lg:w-[560px]">

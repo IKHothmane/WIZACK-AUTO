@@ -91,6 +91,25 @@ const getStorageBucket = () => {
   return (bucket || "images").trim() || "images";
 };
 
+const toPublicImageUrl = (raw: unknown): string | undefined => {
+  const v = String(raw || "").trim();
+  if (!v) return undefined;
+  if (/^https?:\/\//i.test(v)) return v;
+
+  const { url } = getEnv();
+  const bucket = getStorageBucket();
+  const base = String(url || "").trim();
+  const clean = v.replace(/^\/+/, "");
+
+  if (clean.startsWith("storage/v1/object/public/")) {
+    return base ? `${base}/${clean}` : `/${clean}`;
+  }
+  if (v.startsWith("/storage/") || clean.startsWith("storage/")) {
+    return base ? `${base}${v.startsWith("/") ? "" : "/"}${v}` : v;
+  }
+  return base ? `${base}/storage/v1/object/public/${bucket}/${clean}` : v;
+};
+
 export const uploadPublicImage = async (path: string, file: File): Promise<string> => {
   const client = getSupabaseClient();
   const bucket = getStorageBucket();
@@ -345,8 +364,8 @@ const normalizeCategory = (row: DbCategoryRow): Category | null => {
   const position = Number((row as any).position ?? 0);
   const isActiveRaw = (row as any).is_active ?? (row as any).isActive;
   const is_active = typeof isActiveRaw === "boolean" ? isActiveRaw : true;
-  const imageRaw = (row as any).image_url ?? (row as any).imageUrl;
-  const image_url = typeof imageRaw === "string" && imageRaw ? imageRaw : undefined;
+  const imageRaw = (row as any).image_url ?? (row as any).imageUrl ?? (row as any).image;
+  const image_url = toPublicImageUrl(imageRaw);
   if (!id || !name) return null;
   return {
     id,
@@ -532,8 +551,8 @@ const normalizeSubcategory = (row: DbSubcategoryRow): Subcategory | null => {
   const position = Number((row as any).position ?? 0);
   const isActiveRaw = (row as any).is_active ?? (row as any).isActive;
   const is_active = typeof isActiveRaw === "boolean" ? isActiveRaw : true;
-  const imageRaw = (row as any).image_url;
-  const image_url = typeof imageRaw === "string" && imageRaw ? imageRaw : undefined;
+  const imageRaw = (row as any).image_url ?? (row as any).imageUrl ?? (row as any).image;
+  const image_url = toPublicImageUrl(imageRaw);
   if (!id || !parent_slug || !name) return null;
   return {
     id,
@@ -565,17 +584,23 @@ export const fetchSubcategories = async (parentSlug: string): Promise<Subcategor
 export const fetchSubcategoriesForCategory = async (category: { slug: string; name?: string | null }): Promise<Subcategory[]> => {
   const slug = String(category.slug || "").trim();
   const name = typeof category.name === "string" ? category.name.trim() : "";
-  if (!slug) return [];
+  if (!slug && !name) return [];
 
-  const bySlug = await fetchSubcategories(slug);
-  if (bySlug.length) return bySlug;
+  const client = getSupabaseClient();
+  const table = await resolveSubcategoriesTable();
+  const candidates = uniqNonEmpty([slug, slugify(slug), name, slugify(name)]);
+  if (!candidates.length) return [];
 
-  if (name && name !== slug) {
-    const byName = await fetchSubcategories(name);
-    if (byName.length) return byName;
-  }
+  const { data, error } = await client
+    .from(table)
+    .select("*")
+    .in("parent_slug", candidates)
+    .order("position", { ascending: true })
+    .order("name", { ascending: true });
+  if (error) throw error;
 
-  return [];
+  const rows = Array.isArray(data) ? (data as DbSubcategoryRow[]) : [];
+  return rows.map(normalizeSubcategory).filter(Boolean) as Subcategory[];
 };
 
 export const upsertSubcategory = async (subcategory: Subcategory) => {
@@ -686,8 +711,8 @@ const normalizeAtelierService = (row: DbAtelierServiceRow): AtelierService | nul
   const isVisibleRaw = (row as any).is_visible ?? (row as any).isVisible;
   const isVisible = typeof isVisibleRaw === "boolean" ? isVisibleRaw : true;
   const position = Number((row as any).position ?? 0);
-  const imageRaw = (row as any).image_url ?? (row as any).imageUrl;
-  const imageUrl = typeof imageRaw === "string" && imageRaw ? imageRaw : undefined;
+  const imageRaw = (row as any).image_url ?? (row as any).imageUrl ?? (row as any).image;
+  const imageUrl = toPublicImageUrl(imageRaw);
   if (!id || !name) return null;
   return {
     id,
