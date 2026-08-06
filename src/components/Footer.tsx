@@ -105,7 +105,7 @@ export function Footer() {
             <div className="grid grid-cols-1 sm:grid-cols-1 gap-3">
               {[
                 { icon: <MapPin size={13} />, text: "Casablanca, Maroc" },
-                { icon: <Phone size={13} />, text: "+212 6XX-XXXXXX" },
+                { icon: <Phone size={13} />, text: "+212 631-636475" },
                 { icon: <Mail size={13} />, text: "contact@wizackauto.ma" },
                 { icon: <Clock size={13} />, text: "Lun-Sam: 9h-19h" },
               ].map(({ icon, text }) => (

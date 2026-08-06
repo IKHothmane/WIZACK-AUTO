@@ -243,7 +243,7 @@ export function ContactPage() {
                 </div>
                 <div className="rounded-2xl p-4" style={{ border: "1px solid var(--border)", background: "var(--color-item-bg)" }}>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Téléphone</p>
-                  <p className="mt-1 font-bold">+212 6XX-XXXXXX</p>
+                  <p className="mt-1 font-bold">+212 631-636475</p>
                 </div>
                 <div className="rounded-2xl p-4" style={{ border: "1px solid var(--border)", background: "var(--color-item-bg)" }}>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Ville</p>

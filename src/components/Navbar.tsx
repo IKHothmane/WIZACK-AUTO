@@ -84,8 +84,15 @@ export function Navbar({ searchItems = [] }: { searchItems?: Array<{ label: stri
       <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#D4AF37]/30 shadow-[0_4px_30px_rgba(0,0,0,0.1),0_0_15px_rgba(212,175,55,0.1)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.5),0_0_15px_rgba(212,175,55,0.1)] bg-[var(--card)]/85 backdrop-blur-[20px]">
         
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 pl-2 pr-4">
-          <img src="/logo-96.jpg" alt="WIZACK AUTO" className="w-8 h-8 rounded-full object-contain dark:invert dark:brightness-110" width={32} height={32} />
+        <Link to="/" className="flex items-center gap-3 pl-2 pr-4">
+          <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl overflow-hidden shrink-0 border border-[#D4AF37]/30 bg-white dark:bg-black flex items-center justify-center">
+            <img src="/logo.jpg" alt="Wizack Auto" className="w-full h-full object-cover dark:hidden" />
+            <img src="/logodark.jpg" alt="Wizack Auto" className="w-full h-full object-cover hidden dark:block" />
+          </div>
+          <div className="hidden sm:flex flex-col leading-tight">
+            <span className="font-black text-[13px] md:text-sm tracking-[0.12em] text-[#1A1A1A] dark:text-white">WIZACK AUTO</span>
+            <span className="text-[9px] md:text-[10px] tracking-[0.2em] text-[#8A7E6B] dark:text-white/50 uppercase">20 Rue du Dr Roux</span>
+          </div>
         </Link>
 
         {/* Desktop Links */}
