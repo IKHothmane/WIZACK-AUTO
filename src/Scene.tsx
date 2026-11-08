@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF, Float, ContactShadows, PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
@@ -14,9 +14,10 @@ const KEYS = [
   { x: 0, y: 0.1, rot: 5.4, scale: 1.05 },
 ]
 
-function Car({ mobile }: { mobile: boolean }) {
+function Car({ mobile, onReady }: { mobile: boolean; onReady: () => void }) {
   const { scene } = useGLTF('/voiture.glb')
   const group = useRef<THREE.Group>(null!)
+  useEffect(() => { onReady() }, [onReady])
 
   const model = useMemo(() => {
     const clone = scene.clone(true)
@@ -39,7 +40,7 @@ function Car({ mobile }: { mobile: boolean }) {
     const k = 1 - Math.exp(-dt * 4)
     const g = group.current
     g.position.x += ((mobile ? 0 : lerp(a.x, b.x)) - g.position.x) * k
-    g.position.y += ((mobile ? 1.35 + lerp(a.y, b.y) * 0.3 : lerp(a.y, b.y)) - g.position.y) * k
+    g.position.y += ((mobile ? 0.1 : lerp(a.y, b.y)) - g.position.y) * k
     g.rotation.y += (lerp(a.rot, b.rot) - g.rotation.y) * k
     g.scale.setScalar(g.scale.x + (lerp(a.scale, b.scale) * (mobile ? 0.5 : 1) - g.scale.x) * k)
   })
@@ -107,6 +108,14 @@ function Rig() {
 
 export default function Scene() {
   const mobile = useIsMobile()
+  const [ready, setReady] = useState(false)
+  const onReady = useCallback(() => {
+    // Laisse un frame au GPU pour dessiner la voiture avant de retirer l'image d'attente.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      setReady(true)
+      document.getElementById('poster')?.classList.add('gone')
+    }))
+  }, [])
   const [dpr, setDpr] = useState(mobile ? 1.25 : 1.5)
   useEffect(() => {
     const onScroll = () => {
@@ -119,7 +128,7 @@ export default function Scene() {
   }, [])
 
   return (
-    <div className="scene" aria-hidden="true">
+    <div className={`scene${ready ? ' ready' : ''}`} aria-hidden="true">
       <Canvas camera={{ position: [0, 0.6, 7], fov: 38 }} dpr={dpr} gl={{ antialias: !mobile, powerPreference: 'high-performance' }}>
         <color attach="background" args={['#faf8f3']} />
         <fog attach="fog" args={['#faf8f3', 9, 18]} />
@@ -132,7 +141,7 @@ export default function Scene() {
             <Lightformer form="rect" intensity={2} color="#C9A14A" position={[-5, 1, 2]} scale={[2, 4, 1]} />
             <Lightformer form="rect" intensity={2} position={[5, 1, 2]} scale={[2, 4, 1]} />
           </Environment>
-          <Car mobile={mobile} />
+          <Car mobile={mobile} onReady={onReady} />
           {!mobile && <Parts />}
           {!mobile && <ContactShadows position={[0, -2.1, 0]} opacity={0.55} scale={14} blur={2.6} far={4} />}
         </Suspense>

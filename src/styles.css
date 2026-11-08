@@ -3,7 +3,14 @@
 html { scroll-behavior: smooth; }
 body { background: var(--bg); color: var(--fg); font-family: Inter, system-ui, sans-serif; line-height: 1.6; }
 a { color: inherit; text-decoration: none; }
-.scene { position: fixed; inset: 0; z-index: 0; }
+.scene { position: fixed; inset: 0; z-index: 0; opacity: 0; transition: opacity .7s ease; }
+.scene.ready { opacity: 1; }
+/* Image d'attente : s'affiche immédiatement sur mobile, avant la 3D */
+#poster { display: none; }
+@media (max-width: 759px) {
+  #poster { display: block; position: fixed; left: 0; top: 50%; transform: translateY(-50%); width: 100%; height: auto; aspect-ratio: 390 / 230; z-index: 0; pointer-events: none; transition: opacity .7s ease; }
+  #poster.gone { opacity: 0; }
+}
 .scene canvas { display: block; }
 main, footer { position: relative; z-index: 1; }
 
@@ -59,14 +66,17 @@ footer { text-align: center; padding: 28px 16px; color: var(--mut); font-size: .
 @keyframes slide { to { transform: translateX(-50%); } }
 
 /* Bouton WhatsApp flottant */
-.wa { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 20; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #d9b25c, var(--gold)); color: var(--on-gold); box-shadow: 0 10px 30px #b8892b77; transition: transform .2s; }
+.wa { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 20; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: #25D366; color: #fff; box-shadow: 0 10px 28px #25d36677; transition: transform .2s; }
+.wa::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #25D366; animation: ping 2.4s ease-out infinite; }
+@keyframes ping { from { transform: scale(1); opacity: .7; } to { transform: scale(1.6); opacity: 0; } }
 .wa:hover { transform: scale(1.08); }
 
 html, body { overflow-x: hidden; }
 .form input, .form button { min-height: 48px; font-size: 16px; }
 
 @media (max-width: 760px) {
-  .hero { justify-content: flex-end; padding-bottom: 56px; max-width: none; }
+  .hero { justify-content: flex-start; padding-bottom: 40px; max-width: none; }
+  .hero .lead { margin-top: auto; margin-bottom: 20px; font-size: 1rem; }
   .hero .scroll-hint { display: none; }
   .btn { padding: 14px 22px; }
   .cta .btn { flex: 1 1 100%; text-align: center; }
